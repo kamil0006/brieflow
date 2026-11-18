@@ -11,6 +11,7 @@ import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib
 import { fetchHackerNewsTopStories } from "@/lib/sources/hackernews";
 import { fetchRssFeeds } from "@/lib/sources/rss";
 import { cooldownLeft, envNumber, shareInFlight, startCooldown } from "@/lib/rateLimit";
+import { pruneExpiredNews } from "@/lib/retention";
 import { saveArticles } from "@/lib/scrape";
 import { linkThreads } from "@/lib/threads";
 
@@ -103,6 +104,15 @@ async function scrapeAndClassify(locale: Locale) {
 
   const saved = await saveArticles(articles);
 
+  // old news nobody kept goes away (see src/lib/retention.ts)
+  let pruned = 0;
+  try {
+    pruned = (await pruneExpiredNews()).articles;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nieznany błąd";
+    errors.push(`Sprzątanie starych newsów: ${message}`);
+  }
+
   // classification must run before duplicate detection — we compare
   // AI summaries, which don't exist yet for freshly saved articles
   let classified = 0;
@@ -162,6 +172,7 @@ async function scrapeAndClassify(locale: Locale) {
     duplicates,
     boosted,
     threaded,
+    pruned,
     errors,
     startedAt,
     // nothing fetched or the AI step broke — don't make anyone wait to retry
