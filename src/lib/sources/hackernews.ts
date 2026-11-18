@@ -1,4 +1,4 @@
-import type { NormalizedArticle } from "@/lib/sources/types";
+import { HACKER_NEWS_SOURCE, type NormalizedArticle } from "@/lib/sources/types";
 
 const HN_API = "https://hacker-news.firebaseio.com/v0";
 
@@ -36,7 +36,7 @@ export async function fetchHackerNewsTopStories(
     .filter((item) => item.type === "story" && !item.dead && !item.deleted)
     .map((item) => ({
       sourceType: "hackernews",
-      sourceName: "Hacker News",
+      sourceName: HACKER_NEWS_SOURCE,
       externalId: String(item.id),
       url: item.url ?? `https://news.ycombinator.com/item?id=${item.id}`,
       title: item.title ?? "(bez tytułu)",

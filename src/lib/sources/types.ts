@@ -9,3 +9,5 @@ export type NormalizedArticle = {
   commentsCount: number | null;
   publishedAt: Date | null;
 };
+
+export const HACKER_NEWS_SOURCE = "Hacker News";

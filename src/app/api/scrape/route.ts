@@ -9,7 +9,9 @@ import { prisma } from "@/lib/prisma";
 import { markDuplicates } from "@/lib/dedupe";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib/i18n/locale";
 import { fetchHackerNewsTopStories } from "@/lib/sources/hackernews";
-import { fetchRssFeeds } from "@/lib/sources/rss";
+import { errorMessage, fetchRssFeeds, type SourceFetchStatus } from "@/lib/sources/rss";
+import { HACKER_NEWS_SOURCE } from "@/lib/sources/types";
+import { recordSourceStatuses } from "@/lib/sourceStatus";
 import { cooldownLeft, envNumber, shareInFlight, startCooldown } from "@/lib/rateLimit";
 import { pruneExpiredNews } from "@/lib/retention";
 import { saveArticles } from "@/lib/scrape";
@@ -93,13 +95,26 @@ async function scrapeAndClassify(locale: Locale) {
     ...(rssResult.status === "fulfilled" ? rssResult.value.articles : []),
   ];
 
+  const statuses: SourceFetchStatus[] = [
+    hnResult.status === "fulfilled"
+      ? { sourceName: HACKER_NEWS_SOURCE, ok: true, itemCount: hnResult.value.length, error: null }
+      : { sourceName: HACKER_NEWS_SOURCE, ok: false, itemCount: 0, error: errorMessage(hnResult.reason) },
+  ];
   if (hnResult.status === "rejected") {
-    errors.push(`Hacker News: ${hnResult.reason}`);
+    errors.push(`Hacker News: ${errorMessage(hnResult.reason)}`);
   }
   if (rssResult.status === "fulfilled") {
     errors.push(...rssResult.value.errors);
+    statuses.push(...rssResult.value.statuses);
   } else {
-    errors.push(`RSS: ${rssResult.reason}`);
+    errors.push(`RSS: ${errorMessage(rssResult.reason)}`);
+  }
+
+  // per-source health for Settings — a bookkeeping failure must not fail the refresh
+  try {
+    await recordSourceStatuses(statuses);
+  } catch (error) {
+    errors.push(`Status źródeł: ${errorMessage(error)}`);
   }
 
   const saved = await saveArticles(articles);

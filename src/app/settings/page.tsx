@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { CategoryVisibilityList } from "@/components/CategoryVisibilityList";
 import { ReplayOnboardingButton } from "@/components/ReplayOnboardingButton";
 import { Sidebar } from "@/components/Sidebar";
+import { SourceHealthList } from "@/components/SourceHealthList";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
 import { dictionaries } from "@/lib/i18n/dictionary";
@@ -44,6 +45,8 @@ export default async function SettingsPage() {
             </div>
             <ReplayOnboardingButton label={dict.settings.tourReplay} />
           </div>
+
+          <SourceHealthList locale={locale} />
         </main>
       </div>
     </>

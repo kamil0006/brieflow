@@ -18,6 +18,9 @@
   --priority-2: #8b93a1;
   --priority-1: #5b6270;
 
+  /* source health in Settings */
+  --status-ok: #6fcf97;
+
   --cat-ai: #8da4f0;
   --cat-gaming: #6fcf97;
   --cat-tech: #e3b24d;
@@ -47,6 +50,8 @@
   --priority-3: #a9780a;
   --priority-2: #6b7280;
   --priority-1: #9aa1ad;
+
+  --status-ok: #2f9e5c;
 
   --cat-ai: #4a63c9;
   --cat-gaming: #2f9e5c;

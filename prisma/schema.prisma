@@ -138,6 +138,17 @@ model DailyBrief {
 
 // when a user last actually visited the homepage — used for "catch-up"
 // mode after a longer absence, one row per account
+// last fetch result per news source, shown in Settings so a feed that
+// quietly broke (moved, blocked, empty) doesn't go unnoticed
+model SourceStatus {
+  sourceName          String    @id
+  lastAttemptAt       DateTime
+  lastSuccessAt       DateTime?
+  lastError           String?
+  lastItemCount       Int       @default(0)
+  consecutiveFailures Int       @default(0)
+}
+
 model VisitState {
   id            String   @id @default(cuid())
   userId        String   @unique

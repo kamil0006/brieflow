@@ -146,6 +146,19 @@ export type Dictionary = {
     hidden: (label: string) => string;
     undo: string;
   };
+  sourceHealth: {
+    heading: string;
+    body: string;
+    summaryOk: (count: number) => string;
+    summaryProblems: (problems: number, total: number) => string;
+    ok: (lastNew: string) => string;
+    okNoArticles: string;
+    error: (failures: number, lastSuccess: string | null) => string;
+    empty: string;
+    stale: (lastNew: string) => string;
+    skipped: (category: string) => string;
+    unknown: string;
+  };
   onboarding: {
     steps: { title: string; body: string }[];
     next: string;
@@ -401,6 +414,20 @@ const pl: Dictionary = {
   categoryToast: {
     hidden: (label) => `Ukryto kategorię „${label}”`,
     undo: "Cofnij",
+  },
+  sourceHealth: {
+    heading: "Źródła",
+    body: "Stan każdego źródła po ostatnim odświeżeniu — żeby nie przegapić, że któreś przestało działać.",
+    summaryOk: (n) => `Wszystkie działają (${n})`,
+    summaryProblems: (p, n) => `${p} z ${n} ${plPlural(p, "wymaga", "wymagają", "wymaga")} uwagi`,
+    ok: (lastNew) => `Działa · ostatni nowy artykuł ${lastNew}`,
+    okNoArticles: "Działa",
+    error: (failures, lastSuccess) =>
+      `Nie odpowiada (${failures}× z rzędu)` + (lastSuccess ? ` · ostatnio działało ${lastSuccess}` : " · jeszcze nigdy nie działało"),
+    empty: "Odpowiada, ale kanał jest pusty",
+    stale: (lastNew) => `Odpowiada, ale stoi w miejscu · ostatni nowy artykuł ${lastNew}`,
+    skipped: (category) => `Nie pobierane — wszyscy ukryli kategorię „${category}”`,
+    unknown: "Jeszcze nie sprawdzone — pojawi się po następnym odświeżeniu",
   },
   onboarding: {
     steps: [
@@ -688,6 +715,20 @@ const en: Dictionary = {
   categoryToast: {
     hidden: (label) => `Hid category "${label}"`,
     undo: "Undo",
+  },
+  sourceHealth: {
+    heading: "Sources",
+    body: "How each source did on the last refresh — so you notice when one stops working.",
+    summaryOk: (n) => `All working (${n})`,
+    summaryProblems: (p, n) => `${p} of ${n} need${p === 1 ? "s" : ""} attention`,
+    ok: (lastNew) => `Working · last new story ${lastNew}`,
+    okNoArticles: "Working",
+    error: (failures, lastSuccess) =>
+      `Not responding (${failures}× in a row)` + (lastSuccess ? ` · last worked ${lastSuccess}` : " · never worked yet"),
+    empty: "Responds, but the feed is empty",
+    stale: (lastNew) => `Responds, but seems stuck · last new story ${lastNew}`,
+    skipped: (category) => `Not fetched — everyone hides "${category}"`,
+    unknown: "Not checked yet — shows up after the next refresh",
   },
   onboarding: {
     steps: [

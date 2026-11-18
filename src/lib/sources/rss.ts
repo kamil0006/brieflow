@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import type { Category } from "@/lib/categories";
-import type { NormalizedArticle } from "@/lib/sources/types";
+import { HACKER_NEWS_SOURCE, type NormalizedArticle } from "@/lib/sources/types";
 
 // `category` marks feeds that cover a single topic. If every user hides that
 // category, the feed isn't fetched at all. Mixed feeds (no category) always are.
@@ -80,23 +80,41 @@ export function sourceNamesForCategories(categories: readonly Category[]): strin
   );
 }
 
+// every source the app knows, for the source health list in Settings
+export function allSources(): { sourceName: string; category?: Category }[] {
+  return [{ sourceName: HACKER_NEWS_SOURCE }, ...FEEDS.map(({ sourceName, category }) => ({ sourceName, category }))];
+}
+
+export function errorMessage(reason: unknown): string {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  return message.slice(0, 300);
+}
+
+export type SourceFetchStatus = { sourceName: string; ok: boolean; itemCount: number; error: string | null };
+
 export async function fetchRssFeeds(skipCategories: readonly Category[] = []): Promise<{
   articles: NormalizedArticle[];
   errors: string[];
+  statuses: SourceFetchStatus[];
 }> {
   const feeds = activeFeeds(skipCategories);
   const results = await Promise.allSettled(feeds.map(fetchFeed));
 
   const articles: NormalizedArticle[] = [];
   const errors: string[] = [];
+  const statuses: SourceFetchStatus[] = [];
 
   results.forEach((result, i) => {
+    const { sourceName } = feeds[i];
     if (result.status === "fulfilled") {
       articles.push(...result.value);
+      statuses.push({ sourceName, ok: true, itemCount: result.value.length, error: null });
     } else {
-      errors.push(`${feeds[i].sourceName}: ${result.reason}`);
+      const error = errorMessage(result.reason);
+      errors.push(`${sourceName}: ${error}`);
+      statuses.push({ sourceName, ok: false, itemCount: 0, error });
     }
   });
 
-  return { articles, errors };
+  return { articles, errors, statuses };
 }
