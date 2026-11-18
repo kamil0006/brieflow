@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Source_Serif_4, IBM_Plex_Sans } from "next/font/google";
-import { CategoryHideToast } from "@/components/CategoryHideToast";
+import { ToastHost } from "@/components/Toast";
 import { getLocale } from "@/lib/i18n/locale";
 import { getTheme } from "@/lib/theme";
 import "./globals.css";
@@ -27,13 +27,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const theme = await getTheme();
   return (
     <html
-      lang="pl"
+      lang={locale}
       data-theme={theme}
       className={`${sourceSerif.variable} ${plexSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col sm:flex-row bg-bg text-text">
         {children}
-        <CategoryHideToast locale={locale} />
+        <ToastHost />
       </body>
     </html>
   );

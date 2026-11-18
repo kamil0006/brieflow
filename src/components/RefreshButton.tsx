@@ -2,8 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { showToast } from "@/components/Toast";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
+import { setNewSince } from "@/lib/newSince";
+
+type ScrapeResult = {
+  startedAt?: string;
+  newCount?: number;
+  importantCount?: number;
+  errors?: string[];
+};
 
 function RefreshIcon({ spinning }: { spinning: boolean }) {
   return (
@@ -47,8 +56,15 @@ export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
         return;
       }
       if (!res.ok) throw new Error("Scraper returned an error");
+      const data: ScrapeResult = await res.json().catch(() => ({}));
+      // mark the cards this run brought in before the list re-renders
+      if (data.startedAt) setNewSince(data.startedAt);
       router.refresh();
       setStatus("idle");
+      showToast({
+        message: dict.result(data.newCount ?? 0, data.importantCount ?? 0, (data.errors?.length ?? 0) > 0),
+        durationMs: 8000,
+      });
     } catch {
       setStatus("error");
     }

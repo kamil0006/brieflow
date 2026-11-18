@@ -150,7 +150,7 @@ export function OnboardingTour({
   })();
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div data-onboarding className="fixed inset-0 z-[100]">
       <div
         className="absolute inset-0 transition-all duration-300"
         style={

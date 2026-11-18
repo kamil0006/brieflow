@@ -1,42 +1,77 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useDismissibleRow } from "@/components/DismissibleArticle";
+import { showToast } from "@/components/Toast";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
+async function setDismissed(articleId: string, dismissed: boolean): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/articles/${articleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dismissed }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function DismissButton({
   articleId,
+  title,
   locale = "pl",
 }: {
   articleId: string;
+  title: string;
   locale?: Locale;
 }) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const dict = dictionaries[locale].a11y;
+  const row = useDismissibleRow();
+  const dict = dictionaries[locale];
 
-  async function handleClick() {
-    setPending(true);
-    try {
-      await fetch(`/api/articles/${articleId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dismissed: true }),
-      });
-      router.refresh();
-    } finally {
-      setPending(false);
-    }
+  function handleClick() {
+    // the card goes away right now; the server catches up in the background
+    row?.hide();
+    const request = setDismissed(articleId, true);
+
+    showToast({
+      message: dict.dismissToast.dismissed(title),
+      action: {
+        label: dict.dismissToast.undo,
+        onClick: async () => {
+          row?.show();
+          // wait for the dismiss to land first, or the undo could reach the
+          // server before it and get overwritten
+          await request;
+          if (!(await setDismissed(articleId, false))) {
+            showToast({ message: dict.dismissToast.failed });
+          }
+          router.refresh();
+        },
+      },
+    });
+
+    request.then((ok) => {
+      if (ok) {
+        // counts, top picks and the list's tail catch up with the change
+        router.refresh();
+      } else {
+        row?.show();
+        showToast({ message: dict.dismissToast.failed });
+      }
+    });
   }
 
   return (
     <button
       onClick={handleClick}
-      disabled={pending}
-      aria-label={dict.dismiss}
-      title={dict.dismissTitle}
-      className="shrink-0 text-text-faint hover:text-[var(--priority-5)] disabled:opacity-50 transition-colors"
+      data-shortcut="dismiss"
+      aria-label={dict.a11y.dismiss}
+      title={dict.a11y.dismissTitle}
+      className="shrink-0 text-text-faint hover:text-[var(--priority-5)] transition-colors"
     >
       <svg
         width="14"

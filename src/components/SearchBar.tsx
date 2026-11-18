@@ -50,6 +50,7 @@ export function SearchBar({
     <div className="mb-5">
       <input
         type="search"
+        data-shortcut="search"
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CategoryDot } from "@/components/CategoryDot";
 import { DiscussLink } from "@/components/DiscussLink";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { MarkReadOnMount } from "@/components/MarkReadOnMount";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { KeyPointsSkeleton, ReaderTextSkeleton } from "@/components/ReaderBodySkeleton";
@@ -55,7 +56,7 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
         publishedAt: true,
         threadId: true,
         duplicateOfId: true,
-        articleStates: { where: { userId }, select: { read: true, saved: true } },
+        articleStates: { where: { userId }, select: { readAt: true, saved: true } },
       },
     }),
     prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } }),
@@ -80,11 +81,18 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
   return (
     <>
       <Sidebar active="all" counts={counts} locale={locale} theme={theme} />
-      <MarkReadOnMount articleId={article.id} alreadyRead={state?.read ?? false} />
+      {/* bulk "mark all as read" leaves readAt empty — opening such an
+          article still has to record the read so it shows up in History */}
+      <MarkReadOnMount articleId={article.id} alreadyRead={state?.readAt != null} />
+      <KeyboardShortcuts scope="reader" locale={locale} />
 
       <div className="flex-1 min-w-0 flex flex-col xl:flex-row xl:gap-8">
         <main className="min-w-0 px-4 sm:px-6 py-6 w-full max-w-2xl">
-          <Link href={listHref} className="text-sm text-text-muted hover:text-text transition-colors">
+          <Link
+            href={listHref}
+            data-shortcut="back"
+            className="text-sm text-text-muted hover:text-text transition-colors"
+          >
             {dict.reader.back}
           </Link>
 
@@ -109,6 +117,7 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
                 href={article.url}
                 target="_blank"
                 rel="noreferrer"
+                data-shortcut="original"
                 className="ml-auto text-sm font-medium px-3 py-1.5 rounded-md border border-border text-text-muted hover:text-text hover:border-text-faint transition-colors"
               >
                 {dict.reader.openOriginal} ↗

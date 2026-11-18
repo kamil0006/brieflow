@@ -101,3 +101,40 @@ body {
   outline: 2px solid var(--signal);
   outline-offset: 2px;
 }
+
+/* toast slides up a little when it appears */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-enter 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter {
+    animation: none;
+  }
+}
+
+/* keyboard selection (j/k): the whole card lights up instead of just the
+   title link that actually holds focus */
+[data-article-card] {
+  scroll-margin: 1rem;
+}
+
+[data-article-card]:has([data-shortcut="open"]:focus-visible) {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 1px var(--signal);
+}
+
+[data-article-card] [data-shortcut="open"]:focus-visible {
+  outline: none;
+}

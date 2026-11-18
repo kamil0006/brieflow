@@ -17,6 +17,7 @@ export function ArticleTitleLink({
     <Link
       href={href}
       data-tour={tourTarget ? "article-title" : undefined}
+      data-shortcut="open"
       className={`block font-serif text-lg leading-snug hover:text-signal transition-colors ${
         read ? "text-text-muted" : "text-text"
       }`}

@@ -9,6 +9,7 @@ export type ArticleListItem = {
   category: Category;
   priority: number | null;
   publishedAt: Date | null;
+  fetchedAt: Date;
   read: boolean;
   saved: boolean;
   consensusSources: number;

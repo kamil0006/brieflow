@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateDailyBrief, invalidateDailyBriefs } from "@/lib/ai/brief";
 import { classifyPendingArticles } from "@/lib/ai/classify";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
-import { parseHiddenCategories } from "@/lib/categoryPrefs";
+import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { getCategoriesHiddenByEveryone } from "@/lib/classificationScope";
+import { visibleContentFilter } from "@/lib/contentFilter";
 import { prisma } from "@/lib/prisma";
 import { markDuplicates } from "@/lib/dedupe";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib/i18n/locale";
@@ -43,22 +44,40 @@ export async function POST(req: NextRequest) {
   // briefs are per settings: the run dropped today's (each regenerates on
   // its next view), and the person who clicked gets theirs right away
   let brief = false;
+  let newCount = 0;
+  let importantCount = 0;
   const errors = [...result.errors];
   try {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } });
     if (user) {
-      brief = (await getOrCreateDailyBrief(parseHiddenCategories(user.hiddenCategories), locale)) !== null;
+      const hiddenCategories = parseHiddenCategories(user.hiddenCategories);
+      // what this person will actually see from the run — their hidden
+      // categories, duplicates and filtered-out promo don't count as "new"
+      const newWhere = {
+        AND: [
+          { fetchedAt: { gte: new Date(result.startedAt) }, duplicateOfId: null },
+          visibleContentFilter(),
+          visibleCategoriesFilter(hiddenCategories),
+        ],
+      };
+      [newCount, importantCount] = await Promise.all([
+        prisma.article.count({ where: newWhere }),
+        prisma.article.count({ where: { AND: [newWhere, { priority: { gte: 4 } }] } }),
+      ]);
+      brief = (await getOrCreateDailyBrief(hiddenCategories, locale)) !== null;
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nieznany błąd";
     errors.push(`Przegląd dnia: ${message}`);
   }
 
-  return NextResponse.json({ ...result, brief, errors });
+  return NextResponse.json({ ...result, brief, newCount, importantCount, errors });
 }
 
 async function scrapeAndClassify(locale: Locale) {
   const errors: string[] = [];
+  // everything saved from here on counts as "new" from this run
+  const startedAt = new Date().toISOString();
 
   // single-topic feeds for categories every account hides aren't fetched
   const unwantedCategories = await getCategoriesHiddenByEveryone();
@@ -144,6 +163,7 @@ async function scrapeAndClassify(locale: Locale) {
     boosted,
     threaded,
     errors,
+    startedAt,
     // nothing fetched or the AI step broke — don't make anyone wait to retry
     succeeded: articles.length > 0 && !classifyFailed,
   };

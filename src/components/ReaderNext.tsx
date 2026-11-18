@@ -43,6 +43,7 @@ export function ReaderNext({
     <div>
       <Link
         href={href(next.id)}
+        data-shortcut="next"
         className="group block rounded-lg border border-border bg-surface p-4 hover:border-text-faint transition-colors"
       >
         <span className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-text-faint">

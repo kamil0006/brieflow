@@ -14,6 +14,7 @@ export function DiscussLink({
   return (
     <Link
       href={`/ask?article=${articleId}`}
+      data-shortcut="discuss"
       aria-label={dict.discuss}
       title={dict.discuss}
       className="shrink-0 text-text-faint hover:text-text transition-colors"

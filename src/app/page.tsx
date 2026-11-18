@@ -5,6 +5,9 @@ import { CategoryTabs } from "@/components/CategoryTabs";
 import { CatchUpBanner } from "@/components/CatchUpBanner";
 import { DailyBriefSection, DailyBriefSkeleton } from "@/components/DailyBrief";
 import { EmptyState } from "@/components/EmptyState";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { LoadMoreLink } from "@/components/LoadMoreLink";
+import { MarkAllSeenButton } from "@/components/MarkAllSeenButton";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { SearchBar } from "@/components/SearchBar";
 import { Sidebar } from "@/components/Sidebar";
@@ -26,11 +29,22 @@ import { getLocale } from "@/lib/i18n/locale";
 import { getTheme } from "@/lib/theme";
 import { getNavCounts } from "@/lib/navCounts";
 import { prisma } from "@/lib/prisma";
-import type { ArticleFilters } from "@/lib/queryParams";
+import { buildHref, type ArticleFilters } from "@/lib/queryParams";
 import type { ArticleListItem } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
+
+// the list grows in steps of PAGE_SIZE via ?limit=, capped so a hand-edited
+// URL can't ask the database for everything at once
+const PAGE_SIZE = 50;
+const MAX_LIMIT = 1000;
+
+function parseLimit(value: string | string[] | undefined): number {
+  const n = Number.parseInt((Array.isArray(value) ? value[0] : value) ?? "", 10);
+  if (!Number.isFinite(n) || n <= PAGE_SIZE) return PAGE_SIZE;
+  return Math.min(Math.ceil(n / PAGE_SIZE) * PAGE_SIZE, MAX_LIMIT);
+}
 
 function parseCategory(value: string | string[] | undefined): Category | null {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -57,6 +71,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const savedOnly = params.saved === "1";
   const historyOnly = params.history === "1";
   const query = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
+  const limit = parseLimit(params.limit);
   const isDefaultView = !savedOnly && !historyOnly;
   const isHomepage = isDefaultView && !category && !source && !query;
 
@@ -89,6 +104,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           where: {
             userId,
             read: true,
+            // marked read in bulk ("mark all as read") has no readAt — those
+            // were never opened, so they don't belong in History
+            readAt: { not: null },
             dismissed: false,
             article: {
               AND: [
@@ -103,7 +121,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             },
           },
           orderBy: { readAt: "desc" },
-          take: 50,
+          take: limit + 1,
           include: { article: true },
         })
         .then((states) => states.map((s) => ({ article: s.article, read: s.read, saved: s.saved })))
@@ -134,7 +152,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 ],
               },
           orderBy: FEED_ORDER,
-          take: 50,
+          take: limit + 1,
           include: { articleStates: { where: { userId } } },
         })
         .then((rows) =>
@@ -149,7 +167,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   // classified on the next refresh", not "every unclassified row ever"
   const pendingFilter = await pendingClassificationFilter();
 
-  const [rows, counts, brief, newToday, mustRead, pendingClassification, sourceRows] = await Promise.all([
+  const [fetchedRows, counts, brief, newToday, mustRead, pendingClassification, sourceRows] = await Promise.all([
     rowsPromise,
     getNavCounts(userId, hiddenCategories, isHomepage ? statsDateFilter : undefined),
     // the regular daily brief streams in separately (see <Suspense> below)
@@ -187,6 +205,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   ]);
 
   const sources = sourceRows.map((row) => row.sourceName);
+  const hasMore = fetchedRows.length > limit && limit < MAX_LIMIT;
+  const rows = fetchedRows.slice(0, limit);
 
   const threadIds = [...new Set(rows.map((r) => r.article.threadId).filter((id) => id !== null))];
   const threadCounts =
@@ -210,6 +230,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     category: toCategory(article.category),
     priority: article.priority,
     publishedAt: article.publishedAt,
+    fetchedAt: article.fetchedAt,
     read,
     saved,
     consensusSources: article.consensusSources,
@@ -224,6 +245,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     ? articles.filter((a) => !a.read && (a.priority ?? 0) >= 4).slice(0, TOP_PICKS_LIMIT)
     : [];
 
+  const loadMoreHref = (() => {
+    const base = buildHref(filters, {});
+    return `${base}${base.includes("?") ? "&" : "?"}limit=${limit + PAGE_SIZE}`;
+  })();
+
   const activeNav = historyOnly ? "history" : savedOnly ? "saved" : "all";
   const emptyVariant = query
     ? "search"
@@ -236,6 +262,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   return (
     <>
       <VisitTracker />
+      <KeyboardShortcuts scope="list" locale={locale} />
       <Sidebar active={activeNav} counts={counts} locale={locale} theme={theme} />
 
       <div className="flex-1 min-w-0 flex flex-col lg:flex-row">
@@ -276,6 +303,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <EmptyState variant={emptyVariant} query={query} locale={locale} />
           ) : (
             <div className="space-y-3">
+              {isDefaultView && (
+                <div className="flex justify-end">
+                  <MarkAllSeenButton ids={articles.map((a) => a.id)} locale={locale} />
+                </div>
+              )}
               {articles.map((article, i) => (
                 <ArticleRow
                   key={article.id}
@@ -285,6 +317,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   tourTarget={isHomepage && i === 0}
                 />
               ))}
+              {hasMore && (
+                <LoadMoreLink
+                  href={loadMoreHref}
+                  label={dict.home.loadMore}
+                  pendingLabel={dict.home.loadingMore}
+                />
+              )}
             </div>
           )}
         </main>

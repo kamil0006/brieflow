@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArticleRow } from "@/components/ArticleRow";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { toCategory } from "@/lib/categories";
@@ -48,6 +49,7 @@ export default async function ThreadPage({
     category: toCategory(row.category),
     priority: row.priority,
     publishedAt: row.publishedAt,
+    fetchedAt: row.fetchedAt,
     read: row.articleStates[0]?.read ?? false,
     saved: row.articleStates[0]?.saved ?? false,
     consensusSources: row.consensusSources,
@@ -60,6 +62,7 @@ export default async function ThreadPage({
   return (
     <>
       <Sidebar active="all" counts={counts} locale={locale} theme={theme} />
+      <KeyboardShortcuts scope="list" locale={locale} />
 
       <div className="flex-1 min-w-0 flex flex-col">
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-6 max-w-2xl">

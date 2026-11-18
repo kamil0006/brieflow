@@ -40,6 +40,7 @@ export async function getNavCounts(
       where: {
         userId,
         read: true,
+        readAt: { not: null }, // opened, not just marked read in bulk
         dismissed: false,
         article: { AND: [visibleContentFilter(), categoryVisibility] },
       },

@@ -41,6 +41,7 @@ export function SaveToggle({
     <button
       onClick={handleClick}
       disabled={pending}
+      data-shortcut="save"
       aria-pressed={saved}
       aria-label={saved ? dict.unsave : dict.save}
       className="shrink-0 text-text-faint hover:text-text disabled:opacity-50 transition-colors"

@@ -3,6 +3,8 @@ import { ArticleTitleLink } from "@/components/ArticleTitleLink";
 import { CategoryDot } from "@/components/CategoryDot";
 import { DiscussLink } from "@/components/DiscussLink";
 import { DismissButton } from "@/components/DismissButton";
+import { DismissibleArticle } from "@/components/DismissibleArticle";
+import { NewBadge } from "@/components/NewBadge";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { SaveToggle } from "@/components/SaveToggle";
 import { dictionaries } from "@/lib/i18n/dictionary";
@@ -25,9 +27,9 @@ export function ArticleRow({
   const dict = dictionaries[locale];
 
   return (
-    <article
+    <DismissibleArticle
       className={`rounded-lg border border-border bg-surface p-4 space-y-2 transition-opacity ${
-        article.read ? "opacity-50 hover:opacity-90" : ""
+        article.read ? "opacity-50 hover:opacity-90 focus-within:opacity-90" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -35,6 +37,7 @@ export function ArticleRow({
           className="flex items-center gap-3 flex-wrap min-w-0"
           data-tour={tourTarget ? "article-meta" : undefined}
         >
+          {!article.read && <NewBadge fetchedAt={article.fetchedAt} locale={locale} />}
           <PriorityBadge priority={article.priority} locale={locale} />
           <CategoryDot category={article.category} locale={locale} />
           <span className="text-xs text-text-faint">{article.sourceName}</span>
@@ -67,7 +70,7 @@ export function ArticleRow({
         >
           <SaveToggle articleId={article.id} initialSaved={article.saved} locale={locale} />
           <DiscussLink articleId={article.id} locale={locale} />
-          <DismissButton articleId={article.id} locale={locale} />
+          <DismissButton articleId={article.id} title={article.title} locale={locale} />
         </span>
       </div>
 
@@ -96,6 +99,6 @@ export function ArticleRow({
           {article.qualityNote ? ` — ${article.qualityNote}` : ""}
         </p>
       )}
-    </article>
+    </DismissibleArticle>
   );
 }

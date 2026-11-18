@@ -1,5 +1,13 @@
 import type { Locale } from "@/lib/i18n/locale";
 
+// Polish plural: 1 → one, 2–4 (but not 12–14) → few, everything else → many
+function plPlural(n: number, one: string, few: string, many: string): string {
+  if (n === 1) return one;
+  const lastDigit = n % 10;
+  const lastTwo = n % 100;
+  return lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
+}
+
 export type Dictionary = {
   common: { all: string; saved: string; history: string; ask: string; settings: string; logout: string };
   sidebar: { tagline: string };
@@ -9,6 +17,8 @@ export type Dictionary = {
     titleHistory: string;
     subtitleDefault: string;
     subtitleHistory: string;
+    loadMore: string;
+    loadingMore: string;
   };
   search: { placeholder: string };
   sourceFilter: { allSources: string };
@@ -28,8 +38,30 @@ export type Dictionary = {
     history: { title: string; body: string };
     search: { title: string; body: (query: string) => string };
   };
-  article: { notClassified: string; maybeFluff: string; thread: string };
-  refreshButton: { idle: string; loading: string; error: string; fresh: (minutes: number) => string };
+  article: { notClassified: string; maybeFluff: string; thread: string; new: string };
+  refreshButton: {
+    idle: string;
+    loading: string;
+    error: string;
+    fresh: (minutes: number) => string;
+    result: (newCount: number, importantCount: number, hadErrors: boolean) => string;
+  };
+  dismissToast: { dismissed: (title: string) => string; undo: string; failed: string };
+  markAllSeen: {
+    label: (count: number) => string;
+    pending: string;
+    done: (count: number) => string;
+    undo: string;
+    failed: string;
+  };
+  shortcuts: {
+    title: string;
+    close: string;
+    toggleHelp: string;
+    escape: string;
+    list: { keys: string[]; label: string }[];
+    reader: { keys: string[]; label: string }[];
+  };
   dailyBrief: { heading: string };
   catchUp: { welcomeBack: string; away: string };
   ask: {
@@ -166,6 +198,8 @@ const pl: Dictionary = {
     titleHistory: "Historia",
     subtitleDefault: "Wyselekcjonowane przez AI. Posortowane wg tego, co warto przeczytać.",
     subtitleHistory: "Wszystko, co otworzyłeś — niezależnie od tego, czy zostało zapisane.",
+    loadMore: "Pokaż więcej",
+    loadingMore: "Wczytywanie…",
   },
   search: { placeholder: "Szukaj po tytule…" },
   sourceFilter: { allSources: "Wszystkie źródła" },
@@ -209,12 +243,55 @@ const pl: Dictionary = {
     notClassified: "Jeszcze nie ocenione przez AI.",
     maybeFluff: "Może być lanie wody",
     thread: "Wątek",
+    new: "Nowe",
   },
   refreshButton: {
     idle: "Pobierz nowe newsy",
     loading: "Pobieranie…",
     error: "Błąd — spróbuj ponownie",
     fresh: (m) => `Aktualne — kolejne za ${m} min`,
+    result: (n, important, hadErrors) => {
+      const main =
+        n === 0
+          ? "Brak nowych newsów — jesteś na bieżąco"
+          : `${n} ${plPlural(n, "nowy news", "nowe newsy", "nowych newsów")}` +
+            (important > 0 ? `, w tym ${important} ${plPlural(important, "ważny", "ważne", "ważnych")}` : "");
+      return hadErrors ? `${main} · część źródeł nie odpowiedziała` : main;
+    },
+  },
+  dismissToast: {
+    dismissed: (title) => `Odrzucono: ${title}`,
+    undo: "Cofnij",
+    failed: "Nie udało się zapisać — spróbuj ponownie",
+  },
+  markAllSeen: {
+    label: (n) => (n === 1 ? "Oznacz jako przeczytany" : `Oznacz te ${n} jako przeczytane`),
+    pending: "Oznaczanie…",
+    done: (n) =>
+      `Oznaczono ${n} ${plPlural(n, "news", "newsy", "newsów")} jako ${plPlural(n, "przeczytany", "przeczytane", "przeczytane")}`,
+    undo: "Cofnij",
+    failed: "Nie udało się zapisać — spróbuj ponownie",
+  },
+  shortcuts: {
+    title: "Skróty klawiszowe",
+    close: "Zamknij",
+    toggleHelp: "Pokaż / ukryj tę listę",
+    escape: "Zamknij / odznacz",
+    list: [
+      { keys: ["j", "k"], label: "Następny / poprzedni news" },
+      { keys: ["o", "Enter"], label: "Otwórz w czytniku" },
+      { keys: ["s"], label: "Zapisz / usuń z zapisanych" },
+      { keys: ["d"], label: "Odrzuć (nieistotne)" },
+      { keys: ["c"], label: "Przedyskutuj w czacie" },
+      { keys: ["/"], label: "Szukaj" },
+    ],
+    reader: [
+      { keys: ["n"], label: "Następny artykuł" },
+      { keys: ["b"], label: "Wróć do listy" },
+      { keys: ["o"], label: "Otwórz oryginał" },
+      { keys: ["s"], label: "Zapisz / usuń z zapisanych" },
+      { keys: ["c"], label: "Przedyskutuj w czacie" },
+    ],
   },
   dailyBrief: { heading: "Przegląd dnia" },
   catchUp: { welcomeBack: "Witaj z powrotem", away: "Nie było Cię tu" },
@@ -413,6 +490,8 @@ const en: Dictionary = {
     titleHistory: "History",
     subtitleDefault: "Curated by AI. Sorted by what's worth reading.",
     subtitleHistory: "Everything you've opened — whether you saved it or not.",
+    loadMore: "Show more",
+    loadingMore: "Loading…",
   },
   search: { placeholder: "Search by title…" },
   sourceFilter: { allSources: "All sources" },
@@ -456,12 +535,53 @@ const en: Dictionary = {
     notClassified: "Not rated by AI yet.",
     maybeFluff: "Might be fluff",
     thread: "Thread",
+    new: "New",
   },
   refreshButton: {
     idle: "Fetch new news",
     loading: "Fetching…",
     error: "Error — try again",
     fresh: (m) => `Up to date — next in ${m} min`,
+    result: (n, important, hadErrors) => {
+      const main =
+        n === 0
+          ? "No new news — you're all caught up"
+          : `${n} new ${n === 1 ? "story" : "stories"}` + (important > 0 ? `, ${important} important` : "");
+      return hadErrors ? `${main} · some sources didn't respond` : main;
+    },
+  },
+  dismissToast: {
+    dismissed: (title) => `Dismissed: ${title}`,
+    undo: "Undo",
+    failed: "Couldn't save that — try again",
+  },
+  markAllSeen: {
+    label: (n) => `Mark ${n === 1 ? "this" : `these ${n}`} as read`,
+    pending: "Marking…",
+    done: (n) => `Marked ${n} ${n === 1 ? "story" : "stories"} as read`,
+    undo: "Undo",
+    failed: "Couldn't save that — try again",
+  },
+  shortcuts: {
+    title: "Keyboard shortcuts",
+    close: "Close",
+    toggleHelp: "Show / hide this list",
+    escape: "Close / deselect",
+    list: [
+      { keys: ["j", "k"], label: "Next / previous story" },
+      { keys: ["o", "Enter"], label: "Open in reader" },
+      { keys: ["s"], label: "Save / unsave" },
+      { keys: ["d"], label: "Dismiss (not interested)" },
+      { keys: ["c"], label: "Discuss in chat" },
+      { keys: ["/"], label: "Search" },
+    ],
+    reader: [
+      { keys: ["n"], label: "Next article" },
+      { keys: ["b"], label: "Back to the list" },
+      { keys: ["o"], label: "Open original" },
+      { keys: ["s"], label: "Save / unsave" },
+      { keys: ["c"], label: "Discuss in chat" },
+    ],
   },
   dailyBrief: { heading: "Daily brief" },
   catchUp: { welcomeBack: "Welcome back", away: "You've been away" },
