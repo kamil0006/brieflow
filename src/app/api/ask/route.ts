@@ -9,6 +9,7 @@ import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import { envNumber, takeToken } from "@/lib/rateLimit";
+import { buildAskAnswer } from "@/lib/ai/askAnswer";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 // fewer candidates = fewer chances for the model to mix up which article
@@ -208,29 +209,11 @@ export async function POST(req: NextRequest) {
       points: { text: string; index: number }[];
     };
 
-    // numbering and [N] markers are built HERE, from the same `points`
-    // array we build the sources list from — the model doesn't have to
-    // maintain two separate, potentially drifting representations
-    const bodyLines = parsed.points.map((point, i) =>
-      parsed.points.length > 1
-        ? `${i + 1}. ${point.text} [${i + 1}]`
-        : `${point.text} [1]`,
-    );
-    const answer = [parsed.intro, ...bodyLines]
-      .map((line) => line?.trim())
-      .filter(Boolean)
-      .join("\n\n");
+    // grounded = at least one point cites a real article from the list; the
+    // UI flags answers without any source so they don't read as confident
+    const { answer, sources, grounded } = buildAskAnswer(parsed, articles);
 
-    const sources: { id: string; title: string; url: string }[] = [];
-    const seenIndexes = new Set<number>();
-    for (const point of parsed.points) {
-      const article = articles[point.index - 1];
-      if (!article || seenIndexes.has(point.index)) continue;
-      seenIndexes.add(point.index);
-      sources.push({ id: article.id, title: article.title, url: article.url });
-    }
-
-    return NextResponse.json({ answer, sources });
+    return NextResponse.json({ answer: answer || dict.ask.nothingFound, sources, grounded });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: dict.errors.askFailed(message) }, { status: 502 });

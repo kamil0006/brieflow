@@ -9,7 +9,8 @@ import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
 type Source = { id: string; title: string; url: string };
-type Message = { role: "user" | "assistant"; content: string; sources?: Source[] };
+// grounded: false = the model's answer cites no article from the database
+type Message = { role: "user" | "assistant"; content: string; sources?: Source[]; grounded?: boolean };
 type FocusArticle = { id: string; title: string; url: string; sourceName: string; category: Category };
 
 export function ChatPanel({
@@ -62,7 +63,7 @@ export function ChatPanel({
 
       setMessages([
         ...nextMessages,
-        { role: "assistant", content: data.answer, sources: data.sources },
+        { role: "assistant", content: data.answer, sources: data.sources, grounded: data.grounded },
       ]);
     } catch {
       setMessages([...nextMessages, { role: "assistant", content: dict.connectionError }]);
@@ -137,6 +138,13 @@ export function ChatPanel({
                       </ReadTrackingLink>
                     ))}
                   </div>
+                )}
+
+                {message.grounded === false && (
+                  <p className="mt-2 pt-2 border-t border-border flex gap-1.5 text-xs text-text-faint">
+                    <span aria-hidden>ⓘ</span>
+                    {dict.noSources}
+                  </p>
                 )}
               </div>
             </div>

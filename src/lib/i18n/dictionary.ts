@@ -80,6 +80,8 @@ export type Dictionary = {
     focusBadge: string;
     clearFocus: string;
     focusSuggestions: string[];
+    noSources: string;
+    nothingFound: string;
   };
   thread: { back: string; heading: (count: number) => string; subtitle: string };
   reader: {
@@ -324,6 +326,9 @@ const pl: Dictionary = {
       "Co w tym budzi kontrowersje?",
       "Podsumuj w 3 zdaniach",
     ],
+    noSources:
+      "Bez źródeł — ta odpowiedź nie opiera się na żadnym newsie z Twojej bazy. Spróbuj zapytać inaczej albo poszukać w wyszukiwarce na liście.",
+    nothingFound: "Nie znalazłem w Twoich newsach nic na ten temat.",
   },
   thread: {
     back: "← Wróć do listy",
@@ -613,6 +618,9 @@ const en: Dictionary = {
       "What's controversial about this?",
       "Summarize in 3 sentences",
     ],
+    noSources:
+      "No sources — this answer isn't based on any story in your news. Try rephrasing, or use the search on the list.",
+    nothingFound: "I couldn't find anything about that in your news.",
   },
   thread: {
     back: "← Back to the list",
