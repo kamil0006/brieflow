@@ -201,7 +201,7 @@ const pl: Dictionary = {
     loadMore: "Pokaż więcej",
     loadingMore: "Wczytywanie…",
   },
-  search: { placeholder: "Szukaj po tytule…" },
+  search: { placeholder: "Szukaj w tytułach i streszczeniach…" },
   sourceFilter: { allSources: "Wszystkie źródła" },
   stats: {
     heading: "W skrócie",
@@ -493,7 +493,7 @@ const en: Dictionary = {
     loadMore: "Show more",
     loadingMore: "Loading…",
   },
-  search: { placeholder: "Search by title…" },
+  search: { placeholder: "Search titles and summaries…" },
   sourceFilter: { allSources: "All sources" },
   stats: {
     heading: "At a glance",

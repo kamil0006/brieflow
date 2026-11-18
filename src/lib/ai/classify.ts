@@ -4,6 +4,7 @@ import { languageDirective } from "@/lib/ai/languageDirective";
 import { applyQualityClamp, clampPriority } from "@/lib/ai/priorityRules";
 import { titleEchoMatches } from "@/lib/ai/titleEcho";
 import { CATEGORIES, toCategory } from "@/lib/categories";
+import { searchTextFor } from "@/lib/searchText";
 import { pendingClassificationFilter, skipStaleUnclassified } from "@/lib/classificationScope";
 import { extractArticleText } from "@/lib/extract";
 import type { Locale } from "@/lib/i18n/locale";
@@ -317,6 +318,7 @@ async function deepenArticles(
           priority,
           worthReading: priority >= 4,
           summary: result.summary,
+          searchText: searchTextFor(article.title, result.summary),
           content: article.content,
           qualityLabel: result.quality,
           qualityNote: result.qualityNote,
@@ -371,6 +373,7 @@ export async function classifyPendingArticles(
         priority,
         worthReading: priority >= 4,
         summary: result.summary,
+        searchText: searchTextFor(article.title, result.summary),
         classifiedAt: new Date(),
         qualityLabel: quality,
         qualityNote: hasRichContent ? result.qualityNote : null,

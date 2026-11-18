@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedQuery, parseFeedFilters, pickNext, pickUpcoming } from "@/lib/feed";
+import { feedQuery, mainFeedWhere, parseFeedFilters, pickNext, pickUpcoming } from "@/lib/feed";
 
 const art = (id: string) => ({ id });
 // candidates arrive already in feed order (priority high→low, then newest)
@@ -27,5 +27,20 @@ describe("feed filters", () => {
     expect(filters).toEqual({ category: "AI", source: "Hacker News", q: "rust" });
     expect(parseFeedFilters(Object.fromEntries(new URLSearchParams(feedQuery(filters))))).toEqual(filters);
     expect(parseFeedFilters({ category: "Nope" }).category).toBeNull();
+  });
+});
+
+describe("mainFeedWhere", () => {
+  const dateFilter = { publishedAt: { gte: new Date("2026-11-11") } };
+  const base = { userId: "u1", hiddenCategories: [], dateFilter };
+
+  it("keeps the freshness window for browsing", () => {
+    const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q: "" } });
+    expect(where.AND).toContainEqual(dateFilter);
+  });
+
+  it("searches across all dates", () => {
+    const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q: "pokemon" } });
+    expect(where.AND).not.toContainEqual(dateFilter);
   });
 });

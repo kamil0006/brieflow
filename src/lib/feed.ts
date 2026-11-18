@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { CATEGORIES, type Category } from "@/lib/categories";
 import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { searchFilter } from "@/lib/searchText";
 
 // The main feed (homepage, category/source tabs, search) — shared by the
 // list itself and the reader's "next article", so both always agree on
@@ -50,7 +51,7 @@ export function mainFeedWhere({
       {
         ...(filters.category ? { category: filters.category } : {}),
         ...(filters.source ? { sourceName: filters.source } : {}),
-        ...(filters.q ? { title: { contains: filters.q } } : {}),
+        ...searchFilter(filters.q),
         duplicateOfId: null,
       },
       { NOT: { articleStates: { some: { userId, dismissed: true } } } },
@@ -59,7 +60,9 @@ export function mainFeedWhere({
       { NOT: { articleStates: { some: { userId, read: true } } } },
       visibleContentFilter(),
       visibleCategoriesFilter(hiddenCategories),
-      dateFilter,
+      // a search looks through everything, not just the last few days —
+      // looking something up usually means it's no longer fresh
+      filters.q ? {} : dateFilter,
     ],
   };
 }

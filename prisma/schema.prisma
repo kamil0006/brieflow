@@ -32,6 +32,8 @@ model Article {
   worthReading  Boolean?
   summary       String?
   classifiedAt  DateTime?
+  // lowercase title + summary without diacritics, for search (src/lib/searchText.ts)
+  searchText    String?
   // set when an article aged out of the classification window (48h) before
   // the AI got to it — it's never classified, so it never clogs the queue
   classificationSkippedAt DateTime?

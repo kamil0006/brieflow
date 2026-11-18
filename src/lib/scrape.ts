@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { searchTextFor } from "@/lib/searchText";
 import { isObviousPromo } from "@/lib/sources/promoFilter";
 import type { NormalizedArticle } from "@/lib/sources/types";
 
@@ -40,6 +41,7 @@ export async function saveArticles(articles: NormalizedArticle[]) {
             externalId: article.externalId,
             url: article.url,
             title: article.title.slice(0, MAX_TITLE_LENGTH),
+            searchText: searchTextFor(article.title.slice(0, MAX_TITLE_LENGTH), null),
             content: article.content,
             score: article.score,
             commentsCount: article.commentsCount,

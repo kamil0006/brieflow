@@ -29,6 +29,8 @@ import { getLocale } from "@/lib/i18n/locale";
 import { getTheme } from "@/lib/theme";
 import { getNavCounts } from "@/lib/navCounts";
 import { prisma } from "@/lib/prisma";
+import { backfillSearchText } from "@/lib/searchBackfill";
+import { searchFilter } from "@/lib/searchText";
 import { buildHref, type ArticleFilters } from "@/lib/queryParams";
 import type { ArticleListItem } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
@@ -75,6 +77,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const isDefaultView = !savedOnly && !historyOnly;
   const isHomepage = isDefaultView && !category && !source && !query;
 
+  // older articles predate the search column — fill it in before the first search
+  if (query) await backfillSearchText();
+
   const catchUp = isHomepage
     ? await getCatchUpState(userId)
     : { isCatchUp: false, since: null, hoursAway: 0 };
@@ -113,7 +118,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 {
                   ...(category ? { category } : {}),
                   ...(source ? { sourceName: source } : {}),
-                  ...(query ? { title: { contains: query } } : {}),
+                  ...searchFilter(query),
                 },
                 visibleContentFilter(),
                 categoryVisibility,
@@ -143,7 +148,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   {
                     ...(category ? { category } : {}),
                     ...(source ? { sourceName: source } : {}),
-                    ...(query ? { title: { contains: query } } : {}),
+                    ...searchFilter(query),
                     articleStates: { some: { userId, saved: true } },
                   },
                   notDismissedByUser,
