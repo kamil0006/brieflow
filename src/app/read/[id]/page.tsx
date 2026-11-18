@@ -118,7 +118,12 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
 
           {/* two boundaries: the text streams in first, AI key points after */}
           <Suspense fallback={<KeyPointsSkeleton label={dict.reader.loading} />}>
-            <ReaderKeyPoints articleId={article.id} summary={article.summary} locale={locale} />
+            <ReaderKeyPoints
+              articleId={article.id}
+              userId={userId}
+              summary={article.summary}
+              locale={locale}
+            />
           </Suspense>
           <Suspense fallback={<ReaderTextSkeleton />}>
             <ReaderText articleId={article.id} url={article.url} locale={locale} />

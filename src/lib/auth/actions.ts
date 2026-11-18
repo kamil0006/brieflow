@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
+import { isSignupAllowed } from "@/lib/auth/signupPolicy";
 import {
   encryptSession,
   hashPassword,
@@ -66,6 +67,9 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
 
   if (!EMAIL_PATTERN.test(email)) {
     return { error: dict.signup.invalidEmail };
+  }
+  if (!isSignupAllowed(email)) {
+    return { error: dict.signup.signupClosed };
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { error: dict.signup.passwordTooShort };

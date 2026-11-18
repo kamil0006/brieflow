@@ -3,6 +3,7 @@ import { generateKeyPoints } from "@/lib/ai/keyPoints";
 import { extractReadableBlocks, type ReaderBlock } from "@/lib/extract";
 import type { Locale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
+import { envNumber, takeToken } from "@/lib/rateLimit";
 
 // a failed extraction (paywall, JS-only page) is retried after a day at most
 const RETRY_FAILED_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -10,6 +11,31 @@ const WORDS_PER_MINUTE = 220;
 // the classifier's stored excerpt is good enough for key points when the
 // page itself couldn't be read
 const MIN_FALLBACK_CHARS = 600;
+// stored points are free; this only caps how many new ones one account can
+// have generated per hour (e.g. a script walking through every article)
+const KEY_POINTS_PER_HOUR = envNumber("KEY_POINTS_LIMIT_PER_HOUR", 60);
+const HOUR_MS = 60 * 60 * 1000;
+
+// key points are stored per language ({"pl": [...], "en": [...]}) so
+// switching languages doesn't pay for the same article again. Older rows
+// hold a plain array in the language named by readerLocale.
+type StoredKeyPoints = Partial<Record<Locale, string[]>>;
+
+export function parseStoredKeyPoints(raw: string | null, legacyLocale: string | null): StoredKeyPoints {
+  const parsed = parseJson<unknown>(raw);
+  if (Array.isArray(parsed)) {
+    return legacyLocale === "pl" || legacyLocale === "en" ? { [legacyLocale]: parsed as string[] } : {};
+  }
+  if (parsed && typeof parsed === "object") {
+    const result: StoredKeyPoints = {};
+    for (const locale of ["pl", "en"] as const) {
+      const points = (parsed as Record<string, unknown>)[locale];
+      if (Array.isArray(points) && points.every((p) => typeof p === "string")) result[locale] = points;
+    }
+    return result;
+  }
+  return {};
+}
 
 function parseJson<T>(raw: string | null): T | null {
   if (!raw) return null;
@@ -59,7 +85,7 @@ export const getReaderBlocks = cache(async (articleId: string): Promise<ReaderBl
 // fetched once and stored — the text is shared by every account, only the
 // key points depend on the language
 export const getReaderKeyPoints = cache(
-  async (articleId: string, locale: Locale): Promise<string[] | null> => {
+  async (articleId: string, userId: string, locale: Locale): Promise<string[] | null> => {
     const blocks = await getReaderBlocks(articleId);
 
     const article = await prisma.article.findUnique({
@@ -68,10 +94,8 @@ export const getReaderKeyPoints = cache(
     });
     if (!article) return null;
 
-    if (article.readerLocale === locale) {
-      const stored = parseJson<string[]>(article.readerKeyPoints);
-      if (stored) return stored;
-    }
+    const stored = parseStoredKeyPoints(article.readerKeyPoints, article.readerLocale);
+    if (stored[locale]) return stored[locale];
 
     const sourceText = blocks
       ? blocks.map((b) => b.x).join("\n\n")
@@ -79,6 +103,9 @@ export const getReaderKeyPoints = cache(
         ? article.content
         : null;
     if (!sourceText) return null;
+
+    // over the limit the reader falls back to the article's summary
+    if (!takeToken(`keyPoints:${userId}`, KEY_POINTS_PER_HOUR, HOUR_MS).ok) return null;
 
     let keyPoints: string[] | null = null;
     try {
@@ -90,7 +117,7 @@ export const getReaderKeyPoints = cache(
     if (keyPoints) {
       await prisma.article.update({
         where: { id: articleId },
-        data: { readerKeyPoints: JSON.stringify(keyPoints), readerLocale: locale },
+        data: { readerKeyPoints: JSON.stringify({ ...stored, [locale]: keyPoints }), readerLocale: null },
       });
     }
     return keyPoints;

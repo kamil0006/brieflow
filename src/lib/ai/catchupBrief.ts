@@ -9,15 +9,51 @@ import { prisma } from "@/lib/prisma";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
+// The catch-up shows on every homepage load until the browser reports the
+// visit, so without a cache each reload (or a script skipping that report)
+// would pay for a fresh summary. Same person + same "since" + same settings
+// gives the same answer anyway.
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 500;
+type CacheEntry = { value: Promise<string | null>; expiresAt: number };
+const globalForCatchUp = globalThis as unknown as { catchUpCache: Map<string, CacheEntry> | undefined };
+const catchUpCache = (globalForCatchUp.catchUpCache ??= new Map());
+
 const systemPrompt = (topics: string) => `Piszesz krótkie podsumowanie "co przegapiłeś" dla osoby, która śledzi te tematy: ${topics}, i nie zaglądała do newsów od jakiegoś czasu.
 
 Jeden akapit, 3-5 zdań, bez wypunktowań, bez cytowania tytułów dosłownie. Skup się na tym, co najważniejsze — pomiń drobiazgi. Ton: konkretny, rzeczowy, jakbyś wprowadzał kogoś w temat po jego nieobecności.`;
 
-export async function generateCatchUpBrief(
+export function generateCatchUpBrief(
   userId: string,
   since: Date,
   locale: Locale = "pl",
   hiddenCategories: Category[] = [],
+): Promise<string | null> {
+  const key = [userId, since.getTime(), locale, [...hiddenCategories].sort().join(",")].join("|");
+  const now = Date.now();
+  const cached = catchUpCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.value;
+
+  for (const [k, entry] of catchUpCache) {
+    if (entry.expiresAt <= now) catchUpCache.delete(k);
+  }
+  if (catchUpCache.size >= MAX_CACHE_ENTRIES) {
+    catchUpCache.delete(catchUpCache.keys().next().value!);
+  }
+
+  // the promise itself is cached so parallel loads share one request; a
+  // failure is dropped so the next load can try again
+  const value = buildCatchUpBrief(userId, since, locale, hiddenCategories);
+  catchUpCache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
+  value.catch(() => catchUpCache.delete(key));
+  return value;
+}
+
+async function buildCatchUpBrief(
+  userId: string,
+  since: Date,
+  locale: Locale,
+  hiddenCategories: Category[],
 ): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;

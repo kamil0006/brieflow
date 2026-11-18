@@ -8,6 +8,7 @@ import { visibleContentFilter } from "@/lib/contentFilter";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
+import { envNumber, takeToken } from "@/lib/rateLimit";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 // fewer candidates = fewer chances for the model to mix up which article
@@ -15,9 +16,14 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const MAX_CONTEXT_ARTICLES = 40;
 const MAX_HISTORY_MESSAGES = 6;
 const MAX_QUESTION_LENGTH = 500;
+// history comes from the browser — without a cap anyone could pad a single
+// question with megabytes of text and we'd pay for every token of it
+const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 // full text for the article the user explicitly picked to discuss, so the
 // model has more than just the shallow summary to work with
 const FOCUS_EXCERPT_CHARS = 3000;
+const QUESTIONS_PER_HOUR = envNumber("ASK_LIMIT_PER_HOUR", 30);
+const HOUR_MS = 60 * 60 * 1000;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -56,12 +62,21 @@ export async function POST(req: NextRequest) {
   const question =
     typeof record.question === "string" ? record.question.trim().slice(0, MAX_QUESTION_LENGTH) : "";
   const history: ChatMessage[] = Array.isArray(record.history)
-    ? record.history.filter(isChatMessage).slice(-MAX_HISTORY_MESSAGES)
+    ? record.history
+        .filter(isChatMessage)
+        .slice(-MAX_HISTORY_MESSAGES)
+        .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_HISTORY_MESSAGE_LENGTH) }))
     : [];
   const articleId = typeof record.articleId === "string" ? record.articleId : null;
 
   if (!question) {
     return NextResponse.json({ error: dict.errors.emptyQuestion }, { status: 400 });
+  }
+
+  const limit = takeToken(`ask:${userId}`, QUESTIONS_PER_HOUR, HOUR_MS);
+  if (!limit.ok) {
+    const minutes = Math.max(1, Math.ceil(limit.retryAfterMs / 60000));
+    return NextResponse.json({ error: dict.errors.tooManyQuestions(minutes) }, { status: 429 });
   }
 
   try {

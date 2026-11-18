@@ -4,16 +4,18 @@ import { getReaderBlocks, getReaderKeyPoints, readingMinutes } from "@/lib/reade
 
 export async function ReaderKeyPoints({
   articleId,
+  userId,
   summary,
   locale,
 }: {
   articleId: string;
+  userId: string;
   summary: string | null;
   locale: Locale;
 }) {
   const dict = dictionaries[locale].reader;
   const [keyPoints, blocks] = await Promise.all([
-    getReaderKeyPoints(articleId, locale),
+    getReaderKeyPoints(articleId, userId, locale),
     getReaderBlocks(articleId),
   ]);
   // with no points and no summary there's nothing worth a box

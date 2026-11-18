@@ -38,8 +38,8 @@ model Article {
 
   // in-app reader, filled lazily the first time someone opens the article
   readerText      String? // JSON: [{ t: "p" | "h" | "li" | "q", x: string }]
-  readerKeyPoints String? // JSON: string[] — AI key points
-  readerLocale    String? // language the key points were written in
+  readerKeyPoints String? // JSON: { pl?: string[], en?: string[] } — AI key points per language
+  readerLocale    String? // legacy: language of an old plain-array readerKeyPoints
   readerFetchedAt DateTime? // set even when extraction failed, to avoid refetching every open
 
   // deduplication of the same story across different sources

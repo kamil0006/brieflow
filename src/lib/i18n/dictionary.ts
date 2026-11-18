@@ -29,7 +29,7 @@ export type Dictionary = {
     search: { title: string; body: (query: string) => string };
   };
   article: { notClassified: string; maybeFluff: string; thread: string };
-  refreshButton: { idle: string; loading: string; error: string };
+  refreshButton: { idle: string; loading: string; error: string; fresh: (minutes: number) => string };
   dailyBrief: { heading: string };
   catchUp: { welcomeBack: string; away: string };
   ask: {
@@ -96,6 +96,7 @@ export type Dictionary = {
     passwordTooShort: string;
     passwordMismatch: string;
     emailTaken: string;
+    signupClosed: string;
     haveAccount: string;
     loginLink: string;
   };
@@ -124,6 +125,7 @@ export type Dictionary = {
     articleNotFound: string;
     missingApiKey: string;
     askFailed: (msg: string) => string;
+    tooManyQuestions: (minutes: number) => string;
   };
   time: {
     justNow: string;
@@ -212,6 +214,7 @@ const pl: Dictionary = {
     idle: "Pobierz nowe newsy",
     loading: "Pobieranie…",
     error: "Błąd — spróbuj ponownie",
+    fresh: (m) => `Aktualne — kolejne za ${m} min`,
   },
   dailyBrief: { heading: "Przegląd dnia" },
   catchUp: { welcomeBack: "Witaj z powrotem", away: "Nie było Cię tu" },
@@ -301,6 +304,7 @@ const pl: Dictionary = {
     passwordTooShort: "Hasło musi mieć min. 8 znaków",
     passwordMismatch: "Hasła nie są identyczne",
     emailTaken: "Ten email jest już zarejestrowany",
+    signupClosed: "Rejestracja jest zamknięta dla tego adresu",
     haveAccount: "Masz już konto?",
     loginLink: "Zaloguj się",
   },
@@ -366,6 +370,7 @@ const pl: Dictionary = {
     articleNotFound: "Nie znaleziono artykułu",
     missingApiKey: "Brak OPENAI_API_KEY w .env",
     askFailed: (msg) => `Nie udało się uzyskać odpowiedzi: ${msg}`,
+    tooManyQuestions: (m) => `Limit pytań na tę godzinę wyczerpany — spróbuj za ${m} min.`,
   },
   time: {
     justNow: "przed chwilą",
@@ -456,6 +461,7 @@ const en: Dictionary = {
     idle: "Fetch new news",
     loading: "Fetching…",
     error: "Error — try again",
+    fresh: (m) => `Up to date — next in ${m} min`,
   },
   dailyBrief: { heading: "Daily brief" },
   catchUp: { welcomeBack: "Welcome back", away: "You've been away" },
@@ -539,6 +545,7 @@ const en: Dictionary = {
     passwordTooShort: "Password must be at least 8 characters",
     passwordMismatch: "Passwords don't match",
     emailTaken: "This email is already registered",
+    signupClosed: "Sign-up is closed for this address",
     haveAccount: "Already have an account?",
     loginLink: "Log in",
   },
@@ -604,6 +611,7 @@ const en: Dictionary = {
     articleNotFound: "Article not found",
     missingApiKey: "Missing OPENAI_API_KEY in .env",
     askFailed: (msg) => `Couldn't get an answer: ${msg}`,
+    tooManyQuestions: (m) => `You've hit this hour's question limit — try again in ${m} min.`,
   },
   time: {
     justNow: "just now",

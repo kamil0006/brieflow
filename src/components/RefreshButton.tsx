@@ -28,13 +28,24 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
 
 export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
   const router = useRouter();
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "fresh">("idle");
+  const [freshMinutes, setFreshMinutes] = useState(0);
   const dict = dictionaries[locale].refreshButton;
 
   async function handleClick() {
     setStatus("loading");
     try {
       const res = await fetch("/api/scrape", { method: "POST" });
+      if (res.status === 429) {
+        // this account refreshed moments ago — the list may still have news
+        // this tab hasn't shown yet (e.g. the run finished after the tab was
+        // closed), so reload it anyway
+        const data = await res.json().catch(() => ({}));
+        router.refresh();
+        setFreshMinutes(Math.max(1, Math.ceil((data.retryAfterSec ?? 60) / 60)));
+        setStatus("fresh");
+        return;
+      }
       if (!res.ok) throw new Error("Scraper returned an error");
       router.refresh();
       setStatus("idle");
@@ -50,7 +61,13 @@ export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
       className="flex items-center justify-center gap-2 text-sm text-text-muted hover:text-text border border-border rounded-md px-3 py-1.5 transition-colors disabled:opacity-50"
     >
       <RefreshIcon spinning={status === "loading"} />
-      {status === "loading" ? dict.loading : status === "error" ? dict.error : dict.idle}
+      {status === "loading"
+        ? dict.loading
+        : status === "error"
+          ? dict.error
+          : status === "fresh"
+            ? dict.fresh(freshMinutes)
+            : dict.idle}
     </button>
   );
 }
