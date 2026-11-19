@@ -7,8 +7,7 @@ export function Logo({ className }: { className?: string }) {
         <rect x="18" y="1" width="5" height="22" rx="1.5" fill="var(--cat-ai)" />
       </svg>
       <span className="font-serif text-lg tracking-tight text-text leading-none">
-        news<span className="font-semibold">Scrapper</span>
-        <span className="text-signal">AI</span>
+        Brief<span className="font-semibold text-signal">flow</span>
       </span>
     </div>
   );
