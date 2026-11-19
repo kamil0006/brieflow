@@ -21,23 +21,23 @@ export type SourceHealth =
   | { state: "error"; error: string; failures: number; lastSuccessAt: Date | null }
   | { state: "empty" }
   | { state: "stale"; lastNewAt: Date }
-  | { state: "skipped" }
+  | { state: "hidden" }
   | { state: "unknown" };
 
 export function sourceHealth({
   status,
   lastNewArticleAt,
-  skipped,
+  hidden,
   now,
 }: {
   status: StoredSourceStatus | null;
   // newest article we saved from this source
   lastNewArticleAt: Date | null;
-  // single-topic feed nobody wants (every account hides its category)
-  skipped: boolean;
+  // this account turned the source's only category off
+  hidden: boolean;
   now: number;
 }): SourceHealth {
-  if (skipped) return { state: "skipped" };
+  if (hidden) return { state: "hidden" };
   if (!status) return { state: "unknown" };
   if (status.consecutiveFailures > 0) {
     return {

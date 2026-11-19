@@ -46,7 +46,7 @@ export default async function SettingsPage() {
             <ReplayOnboardingButton label={dict.settings.tourReplay} />
           </div>
 
-          <SourceHealthList locale={locale} />
+          <SourceHealthList locale={locale} hiddenCategories={hiddenCategories} />
         </main>
       </div>
     </>

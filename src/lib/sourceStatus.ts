@@ -1,4 +1,4 @@
-import { getCategoriesHiddenByEveryone } from "@/lib/classificationScope";
+import type { Category } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { sourceHealth, toStatusUpdate } from "@/lib/sourceHealth";
 import { allSources, type SourceFetchStatus } from "@/lib/sources/rss";
@@ -21,12 +21,13 @@ export async function recordSourceStatuses(results: SourceFetchStatus[], now: Da
   );
 }
 
-// every known source with its current health, for Settings
-export async function loadSourceHealth(now: number = Date.now()) {
-  const [statuses, lastNew, hiddenByEveryone] = await Promise.all([
+// every known source with its current health, for Settings. Health is
+// shared (one fetch for everyone), but whether a source is hidden is this
+// account's own setting — someone else's choices don't show up here.
+export async function loadSourceHealth(hiddenCategories: Category[], now: number = Date.now()) {
+  const [statuses, lastNew] = await Promise.all([
     prisma.sourceStatus.findMany(),
     prisma.article.groupBy({ by: ["sourceName"], _max: { fetchedAt: true } }),
-    getCategoriesHiddenByEveryone(),
   ]);
   const statusBySource = new Map(statuses.map((s) => [s.sourceName, s]));
   const lastNewBySource = new Map(lastNew.map((row) => [row.sourceName, row._max.fetchedAt]));
@@ -39,7 +40,7 @@ export async function loadSourceHealth(now: number = Date.now()) {
       health: sourceHealth({
         status: statusBySource.get(source.sourceName) ?? null,
         lastNewArticleAt: lastNewAt,
-        skipped: !!source.category && hiddenByEveryone.includes(source.category),
+        hidden: !!source.category && hiddenCategories.includes(source.category),
         now,
       }),
     };

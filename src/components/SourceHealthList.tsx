@@ -1,4 +1,4 @@
-import { categoryLabel } from "@/lib/categories";
+import { type Category, categoryLabel } from "@/lib/categories";
 import { relativeTime } from "@/lib/format";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -12,7 +12,7 @@ const ORDER: Record<SourceHealth["state"], number> = {
   stale: 2,
   ok: 3,
   unknown: 4,
-  skipped: 5,
+  hidden: 5,
 };
 
 const DOT: Record<SourceHealth["state"], string> = {
@@ -21,16 +21,16 @@ const DOT: Record<SourceHealth["state"], string> = {
   empty: "var(--priority-4)",
   stale: "var(--priority-4)",
   unknown: "var(--text-faint)",
-  skipped: "var(--text-faint)",
+  hidden: "var(--text-faint)",
 };
 
-export async function SourceHealthList({ locale }: { locale: Locale }) {
+export async function SourceHealthList({ locale, hiddenCategories }: { locale: Locale; hiddenCategories: Category[] }) {
   const dict = dictionaries[locale].sourceHealth;
-  const rows = (await loadSourceHealth()).sort(
+  const rows = (await loadSourceHealth(hiddenCategories)).sort(
     (a, b) => ORDER[a.health.state] - ORDER[b.health.state] || a.sourceName.localeCompare(b.sourceName),
   );
 
-  const inUse = rows.filter((r) => r.health.state !== "skipped");
+  const inUse = rows.filter((r) => r.health.state !== "hidden");
   const problems = inUse.filter((r) => ["error", "empty", "stale"].includes(r.health.state)).length;
 
   function detail(row: (typeof rows)[number]): string {
@@ -47,8 +47,8 @@ export async function SourceHealthList({ locale }: { locale: Locale }) {
         return dict.empty;
       case "stale":
         return dict.stale(relativeTime(health.lastNewAt, locale));
-      case "skipped":
-        return dict.skipped(row.category ? categoryLabel(row.category, locale) : "");
+      case "hidden":
+        return dict.hidden(row.category ? categoryLabel(row.category, locale) : "");
       case "unknown":
         return dict.unknown;
     }
@@ -74,7 +74,7 @@ export async function SourceHealthList({ locale }: { locale: Locale }) {
             />
             <div className="min-w-0 flex-1">
               <p
-                className={`text-sm ${row.health.state === "skipped" ? "text-text-faint" : "text-text"}`}
+                className={`text-sm ${row.health.state === "hidden" ? "text-text-faint" : "text-text"}`}
               >
                 {row.sourceName}
               </p>

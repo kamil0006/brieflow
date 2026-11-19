@@ -13,14 +13,14 @@ const okStatus = {
 
 describe("sourceHealth", () => {
   it("is ok when the last fetch worked and news keeps coming", () => {
-    expect(sourceHealth({ status: okStatus, lastNewArticleAt: new Date(now - day), skipped: false, now })).toEqual({
+    expect(sourceHealth({ status: okStatus, lastNewArticleAt: new Date(now - day), hidden: false, now })).toEqual({
       state: "ok",
     });
   });
 
   it("reports errors with the failure streak", () => {
     const status = { ...okStatus, lastSuccessAt: new Date(now - 3 * day), lastError: "Status code 403", consecutiveFailures: 4 };
-    expect(sourceHealth({ status, lastNewArticleAt: null, skipped: false, now })).toEqual({
+    expect(sourceHealth({ status, lastNewArticleAt: null, hidden: false, now })).toEqual({
       state: "error",
       error: "Status code 403",
       failures: 4,
@@ -29,14 +29,14 @@ describe("sourceHealth", () => {
   });
 
   it("flags empty and stuck feeds", () => {
-    expect(sourceHealth({ status: { ...okStatus, lastItemCount: 0 }, lastNewArticleAt: null, skipped: false, now }).state).toBe("empty");
+    expect(sourceHealth({ status: { ...okStatus, lastItemCount: 0 }, lastNewArticleAt: null, hidden: false, now }).state).toBe("empty");
     const old = new Date(now - (STALE_AFTER_DAYS + 1) * day);
-    expect(sourceHealth({ status: okStatus, lastNewArticleAt: old, skipped: false, now })).toEqual({ state: "stale", lastNewAt: old });
+    expect(sourceHealth({ status: okStatus, lastNewArticleAt: old, hidden: false, now })).toEqual({ state: "stale", lastNewAt: old });
   });
 
-  it("skipped beats everything; never fetched is unknown", () => {
-    expect(sourceHealth({ status: null, lastNewArticleAt: null, skipped: true, now }).state).toBe("skipped");
-    expect(sourceHealth({ status: null, lastNewArticleAt: null, skipped: false, now }).state).toBe("unknown");
+  it("hidden beats everything; never fetched is unknown", () => {
+    expect(sourceHealth({ status: null, lastNewArticleAt: null, hidden: true, now }).state).toBe("hidden");
+    expect(sourceHealth({ status: null, lastNewArticleAt: null, hidden: false, now }).state).toBe("unknown");
   });
 });
 
