@@ -23,7 +23,7 @@ export type Dictionary = {
   search: { placeholder: string };
   sourceFilter: { allSources: string };
   stats: { heading: string; newToday: string; mustRead: string; pendingClassification: string };
-  topPicks: { heading: string; subtitle: (n: number) => string };
+  topPicks: { heading: string; subtitle: (n: number) => string; rest: string };
   priority: {
     tier5: { label: string; description: string };
     tier4: { label: string; description: string };
@@ -174,6 +174,16 @@ export type Dictionary = {
     askFailed: (msg: string) => string;
     tooManyQuestions: (minutes: number) => string;
   };
+  // labels for the steps of a refresh, prefixed to whatever error a step hit
+  refreshErrors: {
+    classification: string;
+    duplicates: string;
+    threads: string;
+    brief: string;
+    cleanup: string;
+    sourceStatus: string;
+  };
+  meta: { description: string };
   time: {
     justNow: string;
     minutesAgo: (n: number) => string;
@@ -227,6 +237,7 @@ const pl: Dictionary = {
   topPicks: {
     heading: "Najważniejsze teraz",
     subtitle: (n) => `${n} nieprzeczytanych, priorytet 4-5 — reszta poczeka`,
+    rest: "Pozostałe",
   },
   priority: {
     tier5: { label: "Koniecznie", description: "Przełomowe albo bardzo istotne — nie przegap." },
@@ -481,6 +492,15 @@ const pl: Dictionary = {
     askFailed: (msg) => `Nie udało się uzyskać odpowiedzi: ${msg}`,
     tooManyQuestions: (m) => `Limit pytań na tę godzinę wyczerpany — spróbuj za ${m} min.`,
   },
+  refreshErrors: {
+    classification: "Klasyfikacja AI",
+    duplicates: "Wykrywanie duplikatów",
+    threads: "Wątki tematyczne",
+    brief: "Przegląd dnia",
+    cleanup: "Sprzątanie starych newsów",
+    sourceStatus: "Status źródeł",
+  },
+  meta: { description: "Twój codzienny przegląd newsów z tech, AI i gier — posortowany przez AI." },
   time: {
     justNow: "przed chwilą",
     minutesAgo: (n) => `${n} min temu`,
@@ -536,6 +556,7 @@ const en: Dictionary = {
   topPicks: {
     heading: "Top picks right now",
     subtitle: (n) => `${n} unread, priority 4-5 — the rest can wait`,
+    rest: "Everything else",
   },
   priority: {
     tier5: { label: "Must read", description: "Breaking or highly important — don't miss it." },
@@ -782,6 +803,15 @@ const en: Dictionary = {
     askFailed: (msg) => `Couldn't get an answer: ${msg}`,
     tooManyQuestions: (m) => `You've hit this hour's question limit — try again in ${m} min.`,
   },
+  refreshErrors: {
+    classification: "AI classification",
+    duplicates: "Duplicate detection",
+    threads: "Topic threads",
+    brief: "Daily brief",
+    cleanup: "Old news cleanup",
+    sourceStatus: "Source status",
+  },
+  meta: { description: "Your daily digest of tech, AI and gaming news — sorted by AI." },
   time: {
     justNow: "just now",
     minutesAgo: (n) => `${n} min ago`,

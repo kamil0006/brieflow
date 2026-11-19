@@ -23,5 +23,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // static assets stay public: the browser fetches the PWA manifest without
+  // the session cookie, so redirecting it (or the icons) to /login would
+  // make the app impossible to install
+  matcher: ["/((?!_next/static|_next/image|manifest\\.webmanifest|icons/|icon\\.svg|apple-icon\\.png).*)"],
 };

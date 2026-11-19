@@ -56,7 +56,7 @@ export function DismissButton({
 
     request.then((ok) => {
       if (ok) {
-        // counts, top picks and the list's tail catch up with the change
+        // counts and the list's tail catch up with the change
         router.refresh();
       } else {
         row?.show();

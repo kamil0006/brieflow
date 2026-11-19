@@ -18,7 +18,7 @@ type HNItem = {
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${HN_API}/${path}`);
   if (!res.ok) {
-    throw new Error(`Hacker News API error (${res.status}) dla ${path}`);
+    throw new Error(`Hacker News API error (${res.status}) for ${path}`);
   }
   return res.json() as Promise<T>;
 }

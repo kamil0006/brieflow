@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { ArticleRow } from "@/components/ArticleRow";
 import { CategoryTabs } from "@/components/CategoryTabs";
 import { CatchUpBanner } from "@/components/CatchUpBanner";
@@ -13,7 +13,6 @@ import { SearchBar } from "@/components/SearchBar";
 import { Sidebar } from "@/components/Sidebar";
 import { SourceFilter } from "@/components/SourceFilter";
 import { StatsPanel } from "@/components/StatsPanel";
-import { TopPicks } from "@/components/TopPicks";
 import { VisitTracker } from "@/components/VisitTracker";
 import { generateCatchUpBrief } from "@/lib/ai/catchupBrief";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
@@ -51,6 +50,15 @@ function parseLimit(value: string | string[] | undefined): number {
 function parseCategory(value: string | string[] | undefined): Category | null {
   const raw = Array.isArray(value) ? value[0] : value;
   return raw && (CATEGORIES as string[]).includes(raw) ? (raw as Category) : null;
+}
+
+function ListSection({ heading, subtitle, spaced = false }: { heading: string; subtitle?: string; spaced?: boolean }) {
+  return (
+    <div className={spaced ? "pt-4" : ""}>
+      <h2 className="text-sm font-medium text-text">{heading}</h2>
+      {subtitle && <p className="text-xs text-text-faint mt-0.5">{subtitle}</p>}
+    </div>
+  );
 }
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -245,10 +253,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     threadCount: article.threadId ? (threadCountMap.get(article.threadId) ?? 1) : 1,
   }));
 
-  const TOP_PICKS_LIMIT = 5;
-  const topPicks = isHomepage
-    ? articles.filter((a) => !a.read && (a.priority ?? 0) >= 4).slice(0, TOP_PICKS_LIMIT)
-    : [];
+  // the feed is sorted by priority, so the must-reads (4-5) are the top of
+  // the list itself — on the homepage they get a section heading instead of
+  // being repeated in a separate box above the list
+  const mustReadEnd = isHomepage
+    ? (() => {
+        const firstRest = articles.findIndex((a) => (a.priority ?? 0) < 4);
+        return firstRest === -1 ? articles.length : firstRest;
+      })()
+    : 0;
 
   const loadMoreHref = (() => {
     const base = buildHref(filters, {});
@@ -295,7 +308,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             )
           )}
 
-          <TopPicks items={topPicks} locale={locale} />
 
           <SearchBar filters={filters} locale={locale} />
 
@@ -314,13 +326,20 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </div>
               )}
               {articles.map((article, i) => (
-                <ArticleRow
-                  key={article.id}
-                  article={article}
-                  locale={locale}
-                  readerQuery={isDefaultView ? feedQuery({ category, source, q: query }) : ""}
-                  tourTarget={isHomepage && i === 0}
-                />
+                <Fragment key={article.id}>
+                  {i === 0 && mustReadEnd > 0 && (
+                    <ListSection heading={dict.topPicks.heading} subtitle={dict.topPicks.subtitle(mustReadEnd)} />
+                  )}
+                  {i === mustReadEnd && mustReadEnd > 0 && (
+                    <ListSection heading={dict.topPicks.rest} spaced />
+                  )}
+                  <ArticleRow
+                    article={article}
+                    locale={locale}
+                    readerQuery={isDefaultView ? feedQuery({ category, source, q: query }) : ""}
+                    tourTarget={isHomepage && i === 0}
+                  />
+                </Fragment>
               ))}
               {hasMore && (
                 <LoadMoreLink

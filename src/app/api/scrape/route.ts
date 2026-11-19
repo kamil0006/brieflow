@@ -7,6 +7,7 @@ import { getCategoriesHiddenByEveryone } from "@/lib/classificationScope";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { prisma } from "@/lib/prisma";
 import { markDuplicates } from "@/lib/dedupe";
+import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME, type Locale } from "@/lib/i18n/locale";
 import { fetchHackerNewsTopStories } from "@/lib/sources/hackernews";
 import { errorMessage, fetchRssFeeds, type SourceFetchStatus } from "@/lib/sources/rss";
@@ -22,9 +23,15 @@ import { linkThreads } from "@/lib/threads";
 // leaves anyone waiting for nothing
 const COOLDOWN_MS = envNumber("SCRAPE_COOLDOWN_MINUTES", 5) * 60 * 1000;
 
+// a failed step doesn't stop the refresh — it's reported and the rest carries on
+function stepFailed(errors: string[], label: string, error: unknown) {
+  errors.push(`${label}: ${errorMessage(error)}`);
+}
+
 export async function POST(req: NextRequest) {
   const cookieLocale = req.cookies.get(LOCALE_COOKIE_NAME)?.value;
   const locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+  const t = dictionaries[locale].refreshErrors;
 
   const userId = await verifySessionToken(req.cookies.get(SESSION_COOKIE_NAME)?.value);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,14 +77,14 @@ export async function POST(req: NextRequest) {
       brief = (await getOrCreateDailyBrief(hiddenCategories, locale)) !== null;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Przegląd dnia: ${message}`);
+    stepFailed(errors, t.brief, error);
   }
 
   return NextResponse.json({ ...result, brief, newCount, importantCount, errors });
 }
 
 async function scrapeAndClassify(locale: Locale) {
+  const t = dictionaries[locale].refreshErrors;
   const errors: string[] = [];
   // everything saved from here on counts as "new" from this run
   const startedAt = new Date().toISOString();
@@ -114,7 +121,7 @@ async function scrapeAndClassify(locale: Locale) {
   try {
     await recordSourceStatuses(statuses);
   } catch (error) {
-    errors.push(`Status źródeł: ${errorMessage(error)}`);
+    stepFailed(errors, t.sourceStatus, error);
   }
 
   const saved = await saveArticles(articles);
@@ -124,8 +131,7 @@ async function scrapeAndClassify(locale: Locale) {
   try {
     pruned = (await pruneExpiredNews()).articles;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Sprzątanie starych newsów: ${message}`);
+    stepFailed(errors, t.cleanup, error);
   }
 
   // classification must run before duplicate detection — we compare
@@ -144,8 +150,7 @@ async function scrapeAndClassify(locale: Locale) {
     retried = result.retried;
     tokensUsed = result.tokensUsed;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Klasyfikacja AI: ${message}`);
+    stepFailed(errors, t.classification, error);
     classifyFailed = true;
   }
 
@@ -156,8 +161,7 @@ async function scrapeAndClassify(locale: Locale) {
     duplicates = result.marked;
     boosted = result.boosted;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Wykrywanie duplikatów: ${message}`);
+    stepFailed(errors, t.duplicates, error);
   }
 
   let threaded = 0;
@@ -165,15 +169,13 @@ async function scrapeAndClassify(locale: Locale) {
     const result = await linkThreads();
     threaded = result.linked;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Wątki tematyczne: ${message}`);
+    stepFailed(errors, t.threads, error);
   }
 
   try {
     await invalidateDailyBriefs();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nieznany błąd";
-    errors.push(`Przegląd dnia: ${message}`);
+    stepFailed(errors, t.brief, error);
   }
 
   return {

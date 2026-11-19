@@ -7,6 +7,7 @@ import { CATEGORIES, toCategory } from "@/lib/categories";
 import { searchTextFor } from "@/lib/searchText";
 import { pendingClassificationFilter, skipStaleUnclassified } from "@/lib/classificationScope";
 import { extractArticleText } from "@/lib/extract";
+import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
 // the system prompt is sent once per batch, so bigger batches are cheaper —
@@ -120,10 +121,10 @@ function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
   };
 }
 
-function getClient(): OpenAI {
+function getClient(locale: Locale): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("Brak OPENAI_API_KEY w .env");
+    throw new Error(dictionaries[locale].errors.missingApiKey);
   }
   return new OpenAI({ apiKey });
 }
@@ -337,7 +338,7 @@ export async function classifyPendingArticles(
   locale: Locale = "pl",
   maxArticles: number = MAX_PER_RUN,
 ) {
-  const client = getClient();
+  const client = getClient(locale);
   const systemPrompt =
     BASE_SYSTEM_PROMPT + (await buildFeedbackContext()) + languageDirective(locale);
 
