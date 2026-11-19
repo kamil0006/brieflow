@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "set-password": "node --no-warnings scripts/set-password.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
