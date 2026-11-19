@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
-import { isSignupAllowed } from "@/lib/auth/signupPolicy";
+import { isAccountLimitReached, isSignupAllowed } from "@/lib/auth/signupPolicy";
 import {
   encryptSession,
   hashPassword,
@@ -83,9 +83,16 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
     return { error: dict.signup.emailTaken };
   }
 
-  const user = await prisma.user.create({
-    data: { email, passwordHash: await hashPassword(password) },
+  const passwordHash = await hashPassword(password);
+  // count and create together, so two sign-ups at once can't both slip
+  // under the cap
+  const user = await prisma.$transaction(async (tx) => {
+    if (isAccountLimitReached(await tx.user.count())) return null;
+    return tx.user.create({ data: { email, passwordHash } });
   });
+  if (!user) {
+    return { error: dict.signup.accountLimitReached };
+  }
 
   await startSession(user.id);
   redirect("/");

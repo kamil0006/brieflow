@@ -131,6 +131,7 @@ export type Dictionary = {
     passwordMismatch: string;
     emailTaken: string;
     signupClosed: string;
+    accountLimitReached: string;
     haveAccount: string;
     loginLink: string;
   };
@@ -411,6 +412,7 @@ const pl: Dictionary = {
     passwordMismatch: "Hasła nie są identyczne",
     emailTaken: "Ten email jest już zarejestrowany",
     signupClosed: "Rejestracja jest zamknięta dla tego adresu",
+    accountLimitReached: "Limit kont w tej aplikacji został wyczerpany",
     haveAccount: "Masz już konto?",
     loginLink: "Zaloguj się",
   },
@@ -443,7 +445,7 @@ const pl: Dictionary = {
   onboarding: {
     steps: [
       {
-        title: "Witaj w newsScrapperAI",
+        title: "Witaj w Brieflow",
         body: "Krótki spacer po apce — zajmie minutę. Możesz go pominąć w każdej chwili.",
       },
       {
@@ -722,6 +724,7 @@ const en: Dictionary = {
     passwordMismatch: "Passwords don't match",
     emailTaken: "This email is already registered",
     signupClosed: "Sign-up is closed for this address",
+    accountLimitReached: "This app has reached its account limit",
     haveAccount: "Already have an account?",
     loginLink: "Log in",
   },
@@ -754,7 +757,7 @@ const en: Dictionary = {
   onboarding: {
     steps: [
       {
-        title: "Welcome to newsScrapperAI",
+        title: "Welcome to Brieflow",
         body: "A quick walk through the app — takes a minute. You can skip it any time.",
       },
       {
