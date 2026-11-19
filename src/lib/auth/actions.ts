@@ -6,6 +6,8 @@ import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import { isAccountLimitReached, isSignupAllowed } from "@/lib/auth/signupPolicy";
+import { slidingWindow } from "@/lib/rateLimit";
+import { clearUsage, recentUsage, recordUsage } from "@/lib/usageLimit";
 import {
   encryptSession,
   hashPassword,
@@ -16,6 +18,10 @@ import {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+// the app is on the public internet — after this many wrong passwords for
+// one email in the window, that email can't log in until the window frees up
+const MAX_LOGIN_FAILURES = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 export type AuthState = { error: string } | undefined;
 
@@ -44,15 +50,28 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
   const email = typeof formData.get("email") === "string" ? (formData.get("email") as string).trim().toLowerCase() : "";
   const password = typeof formData.get("password") === "string" ? (formData.get("password") as string) : "";
 
+  const failKey = `loginFail:${email}`;
+  const now = Date.now();
+  const lockout = email
+    ? slidingWindow(await recentUsage(failKey, LOGIN_WINDOW_MS, now), now, MAX_LOGIN_FAILURES, LOGIN_WINDOW_MS)
+    : { ok: true as const };
+  if (!lockout.ok) {
+    return { error: dict.login.tooManyAttempts(Math.max(1, Math.ceil(lockout.retryAfterMs / 60000))) };
+  }
+
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
   const valid = user ? await verifyPasswordHash(password, user.passwordHash) : false;
 
   if (!user || !valid) {
+    // counted for unknown emails too, so the answer doesn't reveal which
+    // addresses have an account
+    if (email) await recordUsage(failKey);
     // slow down brute-force guessing a little
     await new Promise((resolve) => setTimeout(resolve, 400));
     return { error: dict.login.invalidCredentials };
   }
 
+  await clearUsage(failKey);
   await startSession(user.id);
   redirect("/");
 }

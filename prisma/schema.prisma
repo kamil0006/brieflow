@@ -107,6 +107,18 @@ model User {
   refreshes     Refresh[]
 }
 
+// one row per use of something limited per time window (chat questions,
+// AI key points, failed logins) — kept in the database, not server memory,
+// so the limits survive restarts, deploys and Railway waking the app
+model UsageEvent {
+  id        String   @id @default(cuid())
+  key       String // e.g. "ask:<userId>", "loginFail:<email>"
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
 // one row per "Fetch new news" run an account started — kept in the
 // database (not in server memory) so the cooldown and the hourly cap
 // survive restarts, deploys and Railway waking the app from sleep

@@ -117,6 +117,7 @@ export type Dictionary = {
     submit: string;
     submitting: string;
     invalidCredentials: string;
+    tooManyAttempts: (minutes: number) => string;
     noAccount: string;
     signupLink: string;
   };
@@ -158,7 +159,7 @@ export type Dictionary = {
     error: (failures: number, lastSuccess: string | null) => string;
     empty: string;
     stale: (lastNew: string) => string;
-    skipped: (category: string) => string;
+    hidden: (category: string) => string;
     unknown: string;
   };
   onboarding: {
@@ -399,6 +400,7 @@ const pl: Dictionary = {
     submit: "Zaloguj",
     submitting: "Logowanie…",
     invalidCredentials: "Nieprawidłowy email lub hasło",
+    tooManyAttempts: (m) => `Za dużo nieudanych prób logowania — spróbuj ponownie za ${m} min`,
     noAccount: "Nie masz konta?",
     signupLink: "Zarejestruj się",
   },
@@ -441,7 +443,7 @@ const pl: Dictionary = {
       `Nie odpowiada (${failures}× z rzędu)` + (lastSuccess ? ` · ostatnio działało ${lastSuccess}` : " · jeszcze nigdy nie działało"),
     empty: "Odpowiada, ale kanał jest pusty",
     stale: (lastNew) => `Odpowiada, ale stoi w miejscu · ostatni nowy artykuł ${lastNew}`,
-    skipped: (category) => `Nie pobierane — wszyscy ukryli kategorię „${category}”`,
+    hidden: (category) => `Ukryte — masz wyłączoną kategorię „${category}”`,
     unknown: "Jeszcze nie sprawdzone — pojawi się po następnym odświeżeniu",
   },
   onboarding: {
@@ -712,6 +714,7 @@ const en: Dictionary = {
     submit: "Log in",
     submitting: "Logging in…",
     invalidCredentials: "Invalid email or password",
+    tooManyAttempts: (m) => `Too many failed login attempts — try again in ${m} min`,
     noAccount: "Don't have an account?",
     signupLink: "Sign up",
   },
@@ -754,7 +757,7 @@ const en: Dictionary = {
       `Not responding (${failures}× in a row)` + (lastSuccess ? ` · last worked ${lastSuccess}` : " · never worked yet"),
     empty: "Responds, but the feed is empty",
     stale: (lastNew) => `Responds, but seems stuck · last new story ${lastNew}`,
-    skipped: (category) => `Not fetched — everyone hides "${category}"`,
+    hidden: (category) => `Hidden — you've turned off "${category}"`,
     unknown: "Not checked yet — shows up after the next refresh",
   },
   onboarding: {

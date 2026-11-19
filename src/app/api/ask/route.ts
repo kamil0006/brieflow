@@ -9,7 +9,8 @@ import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
-import { envNumber, takeToken } from "@/lib/rateLimit";
+import { envNumber } from "@/lib/rateLimit";
+import { takeToken } from "@/lib/usageLimit";
 import { buildAskAnswer } from "@/lib/ai/askAnswer";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: dict.errors.emptyQuestion }, { status: 400 });
   }
 
-  const limit = takeToken(`ask:${userId}`, QUESTIONS_PER_HOUR, HOUR_MS);
+  const limit = await takeToken(`ask:${userId}`, QUESTIONS_PER_HOUR, HOUR_MS);
   if (!limit.ok) {
     const minutes = Math.max(1, Math.ceil(limit.retryAfterMs / 60000));
     return NextResponse.json({ error: dict.errors.tooManyQuestions(minutes) }, { status: 429 });

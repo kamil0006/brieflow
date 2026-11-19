@@ -1,34 +1,28 @@
-// In-memory limits that keep OpenAI costs bounded. They live in the server
-// process (kept on globalThis so dev hot reloads don't reset them), which is
-// enough for a single-server app; a restart simply starts with a clean slate.
+// Shared helpers for the limits that keep OpenAI costs bounded. The limits
+// themselves are stored in the database (src/lib/usageLimit.ts); only the
+// "one refresh at a time" lock lives in server memory (kept on globalThis so
+// dev hot reloads don't reset it).
 
 type LimiterStore = {
-  hits: Map<string, number[]>;
   inFlight: Map<string, Promise<unknown>>;
 };
 
 const globalForLimits = globalThis as unknown as { rateLimits: LimiterStore | undefined };
 
 function store(): LimiterStore {
-  globalForLimits.rateLimits ??= { hits: new Map(), inFlight: new Map() };
+  globalForLimits.rateLimits ??= { inFlight: new Map() };
   return globalForLimits.rateLimits;
 }
 
 export type LimitResult = { ok: true } | { ok: false; retryAfterMs: number };
 
-// sliding window: at most `limit` hits per `windowMs` for one key
-export function takeToken(key: string, limit: number, windowMs: number, now = Date.now()): LimitResult {
-  const hits = store().hits;
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-
-  if (recent.length >= limit) {
-    hits.set(key, recent);
-    return { ok: false, retryAfterMs: windowMs - (now - recent[0]) };
-  }
-
-  recent.push(now);
-  hits.set(key, recent);
-  return { ok: true };
+// sliding window: is there room for one more hit, given the earlier hits'
+// times? At most `limit` per `windowMs`.
+export function slidingWindow(hits: number[], now: number, limit: number, windowMs: number): LimitResult {
+  const recent = hits.filter((t) => now - t < windowMs).sort((a, b) => a - b);
+  if (recent.length < limit) return { ok: true };
+  // the oldest hit that keeps the window full has to leave it
+  return { ok: false, retryAfterMs: recent[recent.length - limit] + windowMs - now };
 }
 
 // while a run with this name is in progress, later callers get the same

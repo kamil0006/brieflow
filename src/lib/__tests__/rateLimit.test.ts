@@ -1,25 +1,23 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { resetRateLimits, shareInFlight, takeToken } from "@/lib/rateLimit";
+import { resetRateLimits, shareInFlight, slidingWindow } from "@/lib/rateLimit";
 
 beforeEach(() => resetRateLimits());
 
-describe("takeToken", () => {
+describe("slidingWindow", () => {
   it("allows up to the limit within the window, then blocks", () => {
-    expect(takeToken("k", 2, 1000, 0).ok).toBe(true);
-    expect(takeToken("k", 2, 1000, 100).ok).toBe(true);
-    const blocked = takeToken("k", 2, 1000, 200);
-    expect(blocked).toEqual({ ok: false, retryAfterMs: 800 });
+    expect(slidingWindow([], 0, 2, 1000).ok).toBe(true);
+    expect(slidingWindow([0], 100, 2, 1000).ok).toBe(true);
+    expect(slidingWindow([0, 100], 200, 2, 1000)).toEqual({ ok: false, retryAfterMs: 800 });
   });
 
   it("frees a slot once the oldest hit leaves the window", () => {
-    takeToken("k", 1, 1000, 0);
-    expect(takeToken("k", 1, 1000, 999).ok).toBe(false);
-    expect(takeToken("k", 1, 1000, 1000).ok).toBe(true);
+    expect(slidingWindow([0], 999, 1, 1000).ok).toBe(false);
+    expect(slidingWindow([0], 1000, 1, 1000).ok).toBe(true);
   });
 
-  it("counts keys separately", () => {
-    takeToken("a", 1, 1000, 0);
-    expect(takeToken("b", 1, 1000, 0).ok).toBe(true);
+  it("waits for the right hit when there are more than the limit, in any order", () => {
+    // 3 hits, limit 2: a slot frees when the 2nd-newest (at 500) leaves
+    expect(slidingWindow([900, 0, 500], 950, 2, 1000)).toEqual({ ok: false, retryAfterMs: 550 });
   });
 });
 

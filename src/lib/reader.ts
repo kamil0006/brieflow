@@ -3,7 +3,8 @@ import { generateKeyPoints } from "@/lib/ai/keyPoints";
 import { extractReadableBlocks, type ReaderBlock } from "@/lib/extract";
 import type { Locale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
-import { envNumber, takeToken } from "@/lib/rateLimit";
+import { envNumber } from "@/lib/rateLimit";
+import { takeToken } from "@/lib/usageLimit";
 
 // a failed extraction (paywall, JS-only page) is retried after a day at most
 const RETRY_FAILED_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -105,7 +106,7 @@ export const getReaderKeyPoints = cache(
     if (!sourceText) return null;
 
     // over the limit the reader falls back to the article's summary
-    if (!takeToken(`keyPoints:${userId}`, KEY_POINTS_PER_HOUR, HOUR_MS).ok) return null;
+    if (!(await takeToken(`keyPoints:${userId}`, KEY_POINTS_PER_HOUR, HOUR_MS)).ok) return null;
 
     let keyPoints: string[] | null = null;
     try {
