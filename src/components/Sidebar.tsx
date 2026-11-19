@@ -58,7 +58,10 @@ export function Sidebar({
   return (
     <aside className="w-full sm:w-56 shrink-0 border-b sm:border-b-0 sm:border-r border-border px-4 sm:px-5 py-3 sm:py-5 flex flex-col sm:gap-6 sm:sticky sm:top-0 sm:h-screen">
       <div data-tour="logo">
-        <Logo />
+        {/* back to the main feed, with every filter and search cleared */}
+        <Link href="/" className="inline-block rounded-md hover:opacity-80 transition-opacity">
+          <Logo />
+        </Link>
         <p className="hidden sm:block text-xs text-text-faint mt-2">{dict.sidebar.tagline}</p>
       </div>
 
