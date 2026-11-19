@@ -44,6 +44,7 @@ export type Dictionary = {
     loading: string;
     error: string;
     fresh: (minutes: number) => string;
+    hourlyLimit: (minutes: number) => string;
     result: (newCount: number, importantCount: number, hadErrors: boolean) => string;
   };
   dismissToast: { dismissed: (title: string) => string; undo: string; failed: string };
@@ -277,6 +278,7 @@ const pl: Dictionary = {
     loading: "Pobieranie…",
     error: "Błąd — spróbuj ponownie",
     fresh: (m) => `Aktualne — kolejne za ${m} min`,
+    hourlyLimit: (m) => `Limit odświeżeń na godzinę — kolejne za ${m} min`,
     result: (n, important, hadErrors) => {
       const main =
         n === 0
@@ -597,6 +599,7 @@ const en: Dictionary = {
     loading: "Fetching…",
     error: "Error — try again",
     fresh: (m) => `Up to date — next in ${m} min`,
+    hourlyLimit: (m) => `Hourly refresh limit reached — next in ${m} min`,
     result: (n, important, hadErrors) => {
       const main =
         n === 0

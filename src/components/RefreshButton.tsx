@@ -37,7 +37,7 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
 
 export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
   const router = useRouter();
-  const [status, setStatus] = useState<"idle" | "loading" | "error" | "fresh">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "fresh" | "hourlyLimit">("idle");
   const [freshMinutes, setFreshMinutes] = useState(0);
   const dict = dictionaries[locale].refreshButton;
 
@@ -46,13 +46,13 @@ export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
     try {
       const res = await fetch("/api/scrape", { method: "POST" });
       if (res.status === 429) {
-        // this account refreshed moments ago — the list may still have news
-        // this tab hasn't shown yet (e.g. the run finished after the tab was
-        // closed), so reload it anyway
+        // this account refreshed moments ago (or hit the hourly cap) — the
+        // list may still have news this tab hasn't shown yet (e.g. the run
+        // finished after the tab was closed), so reload it anyway
         const data = await res.json().catch(() => ({}));
         router.refresh();
         setFreshMinutes(Math.max(1, Math.ceil((data.retryAfterSec ?? 60) / 60)));
-        setStatus("fresh");
+        setStatus(data.status === "hourlyLimit" ? "hourlyLimit" : "fresh");
         return;
       }
       if (!res.ok) throw new Error("Scraper returned an error");
@@ -83,7 +83,9 @@ export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
           ? dict.error
           : status === "fresh"
             ? dict.fresh(freshMinutes)
-            : dict.idle}
+            : status === "hourlyLimit"
+              ? dict.hourlyLimit(freshMinutes)
+              : dict.idle}
     </button>
   );
 }

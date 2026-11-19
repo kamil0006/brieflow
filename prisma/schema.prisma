@@ -104,6 +104,23 @@ model User {
 
   articleStates ArticleState[]
   visitState    VisitState?
+  refreshes     Refresh[]
+}
+
+// one row per "Fetch new news" run an account started — kept in the
+// database (not in server memory) so the cooldown and the hourly cap
+// survive restarts, deploys and Railway waking the app from sleep
+model Refresh {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  // a run that fetched nothing or whose AI step broke — counts towards the
+  // hourly cap, but doesn't start the cooldown
+  succeeded Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // per-user reading state for an article — read/saved/dismissed used to live

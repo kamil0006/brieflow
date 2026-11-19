@@ -13,15 +13,11 @@ import { fetchHackerNewsTopStories } from "@/lib/sources/hackernews";
 import { errorMessage, fetchRssFeeds, type SourceFetchStatus } from "@/lib/sources/rss";
 import { HACKER_NEWS_SOURCE } from "@/lib/sources/types";
 import { recordSourceStatuses } from "@/lib/sourceStatus";
-import { cooldownLeft, envNumber, shareInFlight, startCooldown } from "@/lib/rateLimit";
+import { shareInFlight } from "@/lib/rateLimit";
+import { checkRefreshAllowed, recordRefresh } from "@/lib/refreshLimit";
 import { pruneExpiredNews } from "@/lib/retention";
 import { saveArticles } from "@/lib/scrape";
 import { linkThreads } from "@/lib/threads";
-
-// each account has its own cooldown; it only starts after a refresh that
-// actually worked, so a failed one (or one whose tab was closed) never
-// leaves anyone waiting for nothing
-const COOLDOWN_MS = envNumber("SCRAPE_COOLDOWN_MINUTES", 5) * 60 * 1000;
 
 // a failed step doesn't stop the refresh — it's reported and the rest carries on
 function stepFailed(errors: string[], label: string, error: unknown) {
@@ -36,11 +32,12 @@ export async function POST(req: NextRequest) {
   const userId = await verifySessionToken(req.cookies.get(SESSION_COOKIE_NAME)?.value);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const cooldownKey = `scrape:${userId}`;
-  const waitMs = cooldownLeft(cooldownKey, COOLDOWN_MS);
-  if (waitMs > 0) {
+  // a short cooldown after each refresh that worked, and a cap per hour —
+  // see src/lib/refreshLimit.ts
+  const block = await checkRefreshAllowed(userId);
+  if (block) {
     return NextResponse.json(
-      { status: "cooldown", retryAfterSec: Math.ceil(waitMs / 1000) },
+      { status: block.reason, retryAfterSec: Math.ceil(block.waitMs / 1000) },
       { status: 429 },
     );
   }
@@ -49,7 +46,9 @@ export async function POST(req: NextRequest) {
   // wait for that run instead of paying OpenAI twice for the same news. The
   // run keeps going on the server even if the tab that started it closes.
   const { succeeded, ...result } = await shareInFlight("scrape", () => scrapeAndClassify(locale));
-  if (succeeded) startCooldown(cooldownKey);
+  // every run counts towards the hourly cap; only one that worked starts
+  // the cooldown, so a failed one never leaves anyone waiting for nothing
+  await recordRefresh(userId, succeeded);
 
   // briefs are per settings: the run dropped today's (each regenerates on
   // its next view), and the person who clicked gets theirs right away

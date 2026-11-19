@@ -5,13 +5,12 @@
 type LimiterStore = {
   hits: Map<string, number[]>;
   inFlight: Map<string, Promise<unknown>>;
-  lastRun: Map<string, number>;
 };
 
 const globalForLimits = globalThis as unknown as { rateLimits: LimiterStore | undefined };
 
 function store(): LimiterStore {
-  globalForLimits.rateLimits ??= { hits: new Map(), inFlight: new Map(), lastRun: new Map() };
+  globalForLimits.rateLimits ??= { hits: new Map(), inFlight: new Map() };
   return globalForLimits.rateLimits;
 }
 
@@ -42,16 +41,6 @@ export function shareInFlight<T>(name: string, task: () => Promise<T>): Promise<
   const promise = task().finally(() => inFlight.delete(name));
   inFlight.set(name, promise);
   return promise;
-}
-
-// how long `key` still has to wait; 0 means it may go ahead
-export function cooldownLeft(key: string, cooldownMs: number, now = Date.now()): number {
-  const last = store().lastRun.get(key);
-  return last === undefined ? 0 : Math.max(0, cooldownMs - (now - last));
-}
-
-export function startCooldown(key: string, now = Date.now()) {
-  store().lastRun.set(key, now);
 }
 
 export function resetRateLimits() {

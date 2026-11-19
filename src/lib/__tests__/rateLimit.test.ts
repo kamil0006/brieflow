@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { cooldownLeft, resetRateLimits, shareInFlight, startCooldown, takeToken } from "@/lib/rateLimit";
+import { resetRateLimits, shareInFlight, takeToken } from "@/lib/rateLimit";
 
 beforeEach(() => resetRateLimits());
 
@@ -47,15 +47,5 @@ describe("shareInFlight", () => {
   it("lets the next run start after a failure", async () => {
     await expect(shareInFlight("job", async () => { throw new Error("x"); })).rejects.toThrow("x");
     expect(await shareInFlight("job", async () => 1)).toBe(1);
-  });
-});
-
-describe("cooldown", () => {
-  it("is free until started, then counts down per key", () => {
-    expect(cooldownLeft("a", 1000, 0)).toBe(0);
-    startCooldown("a", 0);
-    expect(cooldownLeft("a", 1000, 400)).toBe(600);
-    expect(cooldownLeft("b", 1000, 400)).toBe(0);
-    expect(cooldownLeft("a", 1000, 1000)).toBe(0);
   });
 });
