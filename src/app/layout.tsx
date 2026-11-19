@@ -21,10 +21,10 @@ const plexSans = IBM_Plex_Sans({
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return {
-    title: "newsScrapperAI",
+    title: "Brieflow",
     description: dictionaries[locale].meta.description,
     // iOS: open full-screen from the home screen, like the manifest does elsewhere
-    appleWebApp: { capable: true, title: "newsScrapper", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "Brieflow", statusBarStyle: "default" },
   };
 }
 

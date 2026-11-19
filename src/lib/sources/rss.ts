@@ -41,7 +41,7 @@ const MAX_ITEMS_PER_FEED = 15;
 const parser = new Parser({
   timeout: 10000,
   headers: {
-    "User-Agent": "Mozilla/5.0 (compatible; newsScrapperAI/0.1; personal news reader)",
+    "User-Agent": "Mozilla/5.0 (compatible; Brieflow/0.1; personal news reader)",
   },
 });
 

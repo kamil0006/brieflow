@@ -117,7 +117,7 @@ async function fetchHtml(url: string): Promise<string | null> {
       signal: controller.signal,
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; newsScrapperAI/0.1; personal news reader)",
+          "Mozilla/5.0 (compatible; Brieflow/0.1; personal news reader)",
       },
     });
 

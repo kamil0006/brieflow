@@ -1,4 +1,4 @@
-# newsScrapperAI
+# Brieflow
 
 A personal AI/tech/gaming news reader that finds, scores, and organizes content for you — less scrolling, more signal.
 

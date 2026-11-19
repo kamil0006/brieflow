@@ -12,7 +12,7 @@ export default async function SignupPage() {
     <main className="min-h-screen w-full flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="font-serif text-2xl text-text">newsScrapperAI</h1>
+          <h1 className="font-serif text-2xl text-text">Brieflow</h1>
           <p className="text-sm text-text-muted mt-1">{dict.signup.subtitle}</p>
         </div>
         <SignupForm dict={dict.signup} />

@@ -6,8 +6,8 @@ import type { MetadataRoute } from "next";
 // offer installation.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "newsScrapperAI",
-    short_name: "newsScrapper",
+    name: "Brieflow",
+    short_name: "Brieflow",
     description: "Twój codzienny przegląd newsów z tech, AI i gier — posortowany przez AI.",
     lang: "pl",
     start_url: "/",
