@@ -9,6 +9,7 @@ import { setNewSince } from "@/lib/newSince";
 
 type ScrapeResult = {
   startedAt?: string;
+  newSince?: string | null;
   newCount?: number;
   importantCount?: number;
   errors?: string[];
@@ -58,7 +59,8 @@ export function RefreshButton({ locale = "pl" }: { locale?: Locale }) {
       if (!res.ok) throw new Error("Scraper returned an error");
       const data: ScrapeResult = await res.json().catch(() => ({}));
       // mark the cards this run brought in before the list re-renders
-      if (data.startedAt) setNewSince(data.startedAt);
+      const since = data.newSince ?? data.startedAt;
+      if (since) setNewSince(since);
       router.refresh();
       setStatus("idle");
       showToast({

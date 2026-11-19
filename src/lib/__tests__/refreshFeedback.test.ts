@@ -38,4 +38,14 @@ describe("new badge", () => {
     expect(activeNewSince("garbage", sinceMs)).toBeNull();
     expect(activeNewSince(null, sinceMs)).toBeNull();
   });
+
+  it("expires 12h after the refresh, even when `since` is much older", () => {
+    // this account last refreshed 2 days before; someone else fetched news since
+    const twoDaysBefore = new Date(sinceMs - 48 * 60 * 60 * 1000).toISOString();
+    const stored = JSON.stringify({ since: twoDaysBefore, at: sinceMs });
+    expect(activeNewSince(stored, sinceMs + 60_000)).toBe(twoDaysBefore);
+    expect(activeNewSince(stored, sinceMs + NEW_BADGE_TTL_MS + 1)).toBeNull();
+    expect(activeNewSince('{"since": 5}', sinceMs)).toBeNull();
+    expect(activeNewSince("{broken", sinceMs)).toBeNull();
+  });
 });

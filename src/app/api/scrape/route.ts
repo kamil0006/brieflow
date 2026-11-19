@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
   // briefs are per settings: the run dropped today's (each regenerates on
   // its next view), and the person who clicked gets theirs right away
   let brief = false;
+  // badge marker: news this account sees for the first time — from this
+  // run, and from anyone else's since this account last refreshed
+  let newSince: string | null = null;
   let newCount = 0;
   let importantCount = 0;
   const errors = [...result.errors];
@@ -68,6 +71,8 @@ export async function POST(req: NextRequest) {
       const previousCutoff = user.feedCutoff;
       const feedCutoff = new Date();
       await prisma.user.update({ where: { id: userId }, data: { feedCutoff } });
+      // the previous cutoff itself was already visible (fetchedAt <= cutoff)
+      newSince = new Date(previousCutoff.getTime() + 1).toISOString();
 
       const hiddenCategories = parseHiddenCategories(user.hiddenCategories);
       // what this person will actually see from the run — their hidden
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
     stepFailed(errors, t.brief, error);
   }
 
-  return NextResponse.json({ ...result, brief, newCount, importantCount, errors });
+  return NextResponse.json({ ...result, newSince, brief, newCount, importantCount, errors });
 }
 
 async function scrapeAndClassify(locale: Locale) {
