@@ -56,7 +56,7 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
     ? slidingWindow(await recentUsage(failKey, LOGIN_WINDOW_MS, now), now, MAX_LOGIN_FAILURES, LOGIN_WINDOW_MS)
     : { ok: true as const };
   if (!lockout.ok) {
-    return { error: dict.login.tooManyAttempts(Math.max(1, Math.ceil(lockout.retryAfterMs / 60000))) };
+    return { error: dict.loginLockout.tooManyAttempts(Math.max(1, Math.ceil(lockout.retryAfterMs / 60000))) };
   }
 
   const user = email ? await prisma.user.findUnique({ where: { email } }) : null;

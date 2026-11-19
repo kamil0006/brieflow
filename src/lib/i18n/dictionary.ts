@@ -117,10 +117,12 @@ export type Dictionary = {
     submit: string;
     submitting: string;
     invalidCredentials: string;
-    tooManyAttempts: (minutes: number) => string;
     noAccount: string;
     signupLink: string;
   };
+  // server-only (used in the login action) — kept out of `login`, which is
+  // passed to a client component and so can't hold functions
+  loginLockout: { tooManyAttempts: (minutes: number) => string };
   signup: {
     subtitle: string;
     emailPlaceholder: string;
@@ -400,9 +402,11 @@ const pl: Dictionary = {
     submit: "Zaloguj",
     submitting: "Logowanie…",
     invalidCredentials: "Nieprawidłowy email lub hasło",
-    tooManyAttempts: (m) => `Za dużo nieudanych prób logowania — spróbuj ponownie za ${m} min`,
     noAccount: "Nie masz konta?",
     signupLink: "Zarejestruj się",
+  },
+  loginLockout: {
+    tooManyAttempts: (m) => `Za dużo nieudanych prób logowania — spróbuj ponownie za ${m} min`,
   },
   signup: {
     subtitle: "Załóż konto, żeby zacząć.",
@@ -714,9 +718,11 @@ const en: Dictionary = {
     submit: "Log in",
     submitting: "Logging in…",
     invalidCredentials: "Invalid email or password",
-    tooManyAttempts: (m) => `Too many failed login attempts — try again in ${m} min`,
     noAccount: "Don't have an account?",
     signupLink: "Sign up",
+  },
+  loginLockout: {
+    tooManyAttempts: (m) => `Too many failed login attempts — try again in ${m} min`,
   },
   signup: {
     subtitle: "Create an account to get started.",
