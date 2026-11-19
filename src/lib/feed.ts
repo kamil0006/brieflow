@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { CATEGORIES, type Category } from "@/lib/categories";
 import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { searchFilter } from "@/lib/searchText";
 
 // The main feed (homepage, category/source tabs, search) — shared by the
@@ -40,11 +41,13 @@ export function mainFeedWhere({
   filters,
   hiddenCategories,
   dateFilter,
+  feedCutoff,
 }: {
   userId: string;
   filters: FeedFilters;
   hiddenCategories: Category[];
   dateFilter: Prisma.ArticleWhereInput;
+  feedCutoff: Date;
 }): Prisma.ArticleWhereInput {
   return {
     AND: [
@@ -60,6 +63,7 @@ export function mainFeedWhere({
       { NOT: { articleStates: { some: { userId, read: true } } } },
       visibleContentFilter(),
       visibleCategoriesFilter(hiddenCategories),
+      fetchedByCutoff(feedCutoff),
       // a search looks through everything, not just the last few days —
       // looking something up usually means it's no longer fresh
       filters.q ? {} : dateFilter,

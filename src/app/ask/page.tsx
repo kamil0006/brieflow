@@ -8,6 +8,7 @@ import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPr
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { getNavCounts } from "@/lib/navCounts";
 import { getTheme } from "@/lib/theme";
 import { prisma } from "@/lib/prisma";
@@ -26,11 +27,12 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
 
   const articleId = (Array.isArray(params.article) ? params.article[0] : params.article) ?? null;
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const feedCutoff = user?.feedCutoff ?? new Date();
 
   const [counts, contextCount, focusArticleRow] = await Promise.all([
-    getNavCounts(userId, hiddenCategories),
+    getNavCounts(userId, hiddenCategories, feedCutoff),
     prisma.article.count({
       where: {
         AND: [
@@ -38,6 +40,7 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
           { NOT: { articleStates: { some: { userId, dismissed: true } } } },
           visibleContentFilter(),
           visibleCategoriesFilter(hiddenCategories),
+          fetchedByCutoff(feedCutoff),
           { OR: [{ publishedAt: { gte: since } }, { fetchedAt: { gte: since } }] },
         ],
       },

@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { Category } from "@/lib/categories";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { FEED_ORDER, type FeedFilters, mainFeedWhere, pickUpcoming } from "@/lib/feed";
 import { freshnessFilter } from "@/lib/freshness";
 import { prisma } from "@/lib/prisma";
@@ -28,14 +29,16 @@ export async function getUpcomingArticles({
   current,
   filters,
   hiddenCategories,
+  feedCutoff,
 }: {
   userId: string;
   current: { id: string };
   filters: FeedFilters;
   hiddenCategories: Category[];
+  feedCutoff: Date;
 }): Promise<ReaderCard[]> {
   const candidates = await prisma.article.findMany({
-    where: mainFeedWhere({ userId, filters, hiddenCategories, dateFilter: freshnessFilter() }),
+    where: mainFeedWhere({ userId, filters, hiddenCategories, dateFilter: freshnessFilter(), feedCutoff }),
     orderBy: FEED_ORDER,
     // +1 in case the open article is still in the feed (not marked read yet)
     take: UPCOMING_COUNT + 1,
@@ -57,9 +60,11 @@ export type RelatedItem = {
 export async function getRelatedArticles({
   userId,
   current,
+  feedCutoff,
 }: {
   userId: string;
   current: { id: string; threadId: string | null; duplicateOfId: string | null };
+  feedCutoff: Date;
 }): Promise<RelatedItem[]> {
   const sameStory: Prisma.ArticleWhereInput[] = [{ duplicateOfId: current.id }];
   if (current.threadId) sameStory.push({ threadId: current.threadId });
@@ -73,6 +78,7 @@ export async function getRelatedArticles({
         { id: { not: current.id }, OR: sameStory },
         { NOT: { articleStates: { some: { userId, dismissed: true } } } },
         visibleContentFilter(),
+        fetchedByCutoff(feedCutoff),
       ],
     },
     orderBy: { publishedAt: "desc" },

@@ -34,13 +34,15 @@ export function DailyBrief({
 export async function DailyBriefSection({
   hiddenCategories,
   locale,
+  feedCutoff,
 }: {
   hiddenCategories: Category[];
   locale: Locale;
+  feedCutoff: Date;
 }) {
   let content: string | null = null;
   try {
-    content = await getOrCreateDailyBrief(hiddenCategories, locale);
+    content = await getOrCreateDailyBrief(hiddenCategories, locale, feedCutoff);
   } catch {
     // no brief is better than a broken homepage (e.g. OpenAI down)
     content = null;

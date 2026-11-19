@@ -32,7 +32,8 @@ describe("feed filters", () => {
 
 describe("mainFeedWhere", () => {
   const dateFilter = { publishedAt: { gte: new Date("2026-11-11") } };
-  const base = { userId: "u1", hiddenCategories: [], dateFilter };
+  const feedCutoff = new Date("2026-11-18T10:00:00Z");
+  const base = { userId: "u1", hiddenCategories: [], dateFilter, feedCutoff };
 
   it("keeps the freshness window for browsing", () => {
     const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q: "" } });
@@ -42,5 +43,12 @@ describe("mainFeedWhere", () => {
   it("searches across all dates", () => {
     const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q: "pokemon" } });
     expect(where.AND).not.toContainEqual(dateFilter);
+  });
+
+  it("only shows what was fetched up to this account's own last refresh, searching too", () => {
+    for (const q of ["", "pokemon"]) {
+      const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q } });
+      expect(where.AND).toContainEqual({ fetchedAt: { lte: feedCutoff } });
+    }
   });
 });

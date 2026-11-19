@@ -59,15 +59,16 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
         articleStates: { where: { userId }, select: { readAt: true, saved: true } },
       },
     }),
-    prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } }),
   ]);
   if (!article) notFound();
 
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const feedCutoff = user?.feedCutoff ?? new Date();
   const [counts, upcoming, related] = await Promise.all([
-    getNavCounts(userId, hiddenCategories),
-    getUpcomingArticles({ userId, current: article, filters, hiddenCategories }),
-    getRelatedArticles({ userId, current: article }),
+    getNavCounts(userId, hiddenCategories, feedCutoff),
+    getUpcomingArticles({ userId, current: article, filters, hiddenCategories, feedCutoff }),
+    getRelatedArticles({ userId, current: article, feedCutoff }),
   ]);
   const state = article.articleStates[0];
 

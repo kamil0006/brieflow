@@ -58,14 +58,24 @@ export async function POST(req: NextRequest) {
   let importantCount = 0;
   const errors = [...result.errors];
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { hiddenCategories: true, feedCutoff: true },
+    });
     if (user) {
+      // only this person's feed moves forward — everything fetched since
+      // their own last refresh (by this run, or by someone else's in the
+      // meantime) shows up for them now
+      const previousCutoff = user.feedCutoff;
+      const feedCutoff = new Date();
+      await prisma.user.update({ where: { id: userId }, data: { feedCutoff } });
+
       const hiddenCategories = parseHiddenCategories(user.hiddenCategories);
       // what this person will actually see from the run — their hidden
       // categories, duplicates and filtered-out promo don't count as "new"
       const newWhere = {
         AND: [
-          { fetchedAt: { gte: new Date(result.startedAt) }, duplicateOfId: null },
+          { fetchedAt: { gt: previousCutoff, lte: feedCutoff }, duplicateOfId: null },
           visibleContentFilter(),
           visibleCategoriesFilter(hiddenCategories),
         ],
@@ -74,7 +84,7 @@ export async function POST(req: NextRequest) {
         prisma.article.count({ where: newWhere }),
         prisma.article.count({ where: { AND: [newWhere, { priority: { gte: 4 } }] } }),
       ]);
-      brief = (await getOrCreateDailyBrief(hiddenCategories, locale)) !== null;
+      brief = (await getOrCreateDailyBrief(hiddenCategories, locale, feedCutoff)) !== null;
     }
   } catch (error) {
     stepFailed(errors, t.brief, error);

@@ -4,6 +4,7 @@ import { languageDirective } from "@/lib/ai/languageDirective";
 import type { Category } from "@/lib/categories";
 import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import type { Locale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 
@@ -27,9 +28,10 @@ export function generateCatchUpBrief(
   userId: string,
   since: Date,
   locale: Locale = "pl",
-  hiddenCategories: Category[] = [],
+  hiddenCategories: Category[],
+  feedCutoff: Date,
 ): Promise<string | null> {
-  const key = [userId, since.getTime(), locale, [...hiddenCategories].sort().join(",")].join("|");
+  const key = [userId, since.getTime(), feedCutoff.getTime(), locale, [...hiddenCategories].sort().join(",")].join("|");
   const now = Date.now();
   const cached = catchUpCache.get(key);
   if (cached && cached.expiresAt > now) return cached.value;
@@ -43,7 +45,7 @@ export function generateCatchUpBrief(
 
   // the promise itself is cached so parallel loads share one request; a
   // failure is dropped so the next load can try again
-  const value = buildCatchUpBrief(userId, since, locale, hiddenCategories);
+  const value = buildCatchUpBrief(userId, since, locale, hiddenCategories, feedCutoff);
   catchUpCache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
   value.catch(() => catchUpCache.delete(key));
   return value;
@@ -54,6 +56,7 @@ async function buildCatchUpBrief(
   since: Date,
   locale: Locale,
   hiddenCategories: Category[],
+  feedCutoff: Date,
 ): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -65,6 +68,7 @@ async function buildCatchUpBrief(
         { NOT: { articleStates: { some: { userId, dismissed: true } } } },
         visibleContentFilter(),
         visibleCategoriesFilter(hiddenCategories),
+        fetchedByCutoff(feedCutoff),
         {
           OR: [
             { publishedAt: { gte: since } },

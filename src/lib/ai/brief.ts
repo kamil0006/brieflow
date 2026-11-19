@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { languageDirective } from "@/lib/ai/languageDirective";
 import { CATEGORIES, type Category, categoryLabel } from "@/lib/categories";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import type { Locale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 
@@ -30,13 +31,13 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// accounts with the same language and the same visible categories get the
-// same brief, so it's generated once for all of them
-export function briefKey(date: string, locale: Locale, categories: Category[]): string {
-  return `${date}|${locale}|${[...categories].sort().join(",")}`;
+// accounts with the same language, the same visible categories and the
+// same last refresh get the same brief, so it's generated once for all of them
+export function briefKey(date: string, locale: Locale, categories: Category[], feedCutoff: Date): string {
+  return `${date}|${locale}|${[...categories].sort().join(",")}|${feedCutoff.getTime()}`;
 }
 
-async function generateBrief(categories: Category[], locale: Locale): Promise<string | null> {
+async function generateBrief(categories: Category[], locale: Locale, feedCutoff: Date): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || categories.length === 0) return null;
 
@@ -49,6 +50,7 @@ async function generateBrief(categories: Category[], locale: Locale): Promise<st
         { classifiedAt: { not: null }, duplicateOfId: null, fetchedAt: { gte: since } },
         { category: { in: categories } },
         visibleContentFilter(),
+        fetchedByCutoff(feedCutoff),
       ],
     },
     orderBy: [{ priority: "desc" }],
@@ -87,15 +89,16 @@ async function generateBrief(categories: Category[], locale: Locale): Promise<st
 export async function getOrCreateDailyBrief(
   hiddenCategories: Category[],
   locale: Locale,
+  feedCutoff: Date,
 ): Promise<string | null> {
   const categories = visibleCategories(hiddenCategories);
   const date = todayKey();
-  const key = briefKey(date, locale, categories);
+  const key = briefKey(date, locale, categories, feedCutoff);
 
   const cached = await prisma.dailyBrief.findUnique({ where: { key } });
   if (cached) return cached.content;
 
-  const content = await generateBrief(categories, locale);
+  const content = await generateBrief(categories, locale, feedCutoff);
   if (!content) return null;
 
   // upsert: two people with the same settings may open the page at once

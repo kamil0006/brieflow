@@ -21,9 +21,9 @@ export default async function SettingsPage() {
   const theme = await getTheme();
   const dict = dictionaries[locale];
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
-  const counts = await getNavCounts(userId, hiddenCategories);
+  const counts = await getNavCounts(userId, hiddenCategories, user?.feedCutoff ?? new Date());
 
   return (
     <>

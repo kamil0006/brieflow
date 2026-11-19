@@ -97,6 +97,11 @@ model User {
   // from Settings) — set the moment they finish or skip it
   onboardingCompletedAt DateTime?
 
+  // articles are shared, but each account only sees what was fetched up to
+  // its own last refresh — someone else's refresh doesn't change your feed
+  // until you refresh yourself. New accounts start with what's already there.
+  feedCutoff DateTime @default(now())
+
   articleStates ArticleState[]
   visitState    VisitState?
 }

@@ -22,6 +22,7 @@ import { catchUpDateFilter, getCatchUpState, sinceLabel } from "@/lib/catchup";
 import { pendingClassificationFilter } from "@/lib/classificationScope";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { FEED_ORDER, feedQuery, mainFeedWhere } from "@/lib/feed";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { freshnessFilter, getStartOfToday } from "@/lib/freshness";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
@@ -67,10 +68,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hiddenCategories: true, onboardingCompletedAt: true },
+    select: { hiddenCategories: true, onboardingCompletedAt: true, feedCutoff: true },
   });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
   const categoryVisibility = visibleCategoriesFilter(hiddenCategories);
+  // only news fetched up to this account's own last refresh
+  const feedCutoff = user?.feedCutoff ?? new Date();
+  const seenByCutoff = fetchedByCutoff(feedCutoff);
 
   const params = await searchParams;
   const locale = await getLocale();
@@ -149,6 +153,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 filters: { category, source, q: query },
                 hiddenCategories,
                 dateFilter: statsDateFilter,
+                feedCutoff,
               })
             : {
                 // Saved shows exactly what you saved — read or not, duplicates included
@@ -182,15 +187,16 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const [fetchedRows, counts, brief, newToday, mustRead, pendingClassification, sourceRows] = await Promise.all([
     rowsPromise,
-    getNavCounts(userId, hiddenCategories, isHomepage ? statsDateFilter : undefined),
+    getNavCounts(userId, hiddenCategories, feedCutoff, isHomepage ? statsDateFilter : undefined),
     // the regular daily brief streams in separately (see <Suspense> below)
     catchUp.isCatchUp && catchUp.since
-      ? generateCatchUpBrief(userId, catchUp.since, locale, hiddenCategories)
+      ? generateCatchUpBrief(userId, catchUp.since, locale, hiddenCategories, feedCutoff)
       : Promise.resolve(null),
     prisma.article.count({
       where: {
         AND: [
           { fetchedAt: { gte: startOfToday } },
+          seenByCutoff,
           notDismissedByUser,
           { duplicateOfId: null },
           visibleContentFilter(),
@@ -202,6 +208,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       where: {
         AND: [
           { priority: 5, duplicateOfId: null },
+          seenByCutoff,
           { NOT: { articleStates: { some: { userId, OR: [{ read: true }, { dismissed: true }] } } } },
           visibleContentFilter(),
           categoryVisibility,
@@ -209,7 +216,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         ],
       },
     }),
-    prisma.article.count({ where: { AND: [pendingFilter, notDismissedByUser] } }),
+    prisma.article.count({ where: { AND: [pendingFilter, notDismissedByUser, seenByCutoff] } }),
     prisma.article.findMany({
       distinct: ["sourceName"],
       select: { sourceName: true },
@@ -226,7 +233,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     threadIds.length > 0
       ? await prisma.article.groupBy({
           by: ["threadId"],
-          where: { threadId: { in: threadIds } },
+          where: { threadId: { in: threadIds }, ...seenByCutoff },
           _count: { _all: true },
         })
       : [];
@@ -303,7 +310,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               // generated on first view for these settings (~2-3s) — the
               // list shouldn't wait for it
               <Suspense fallback={<DailyBriefSkeleton />}>
-                <DailyBriefSection hiddenCategories={hiddenCategories} locale={locale} />
+                <DailyBriefSection hiddenCategories={hiddenCategories} locale={locale} feedCutoff={feedCutoff} />
               </Suspense>
             )
           )}

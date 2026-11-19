@@ -8,6 +8,7 @@ import { toCategory } from "@/lib/categories";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { getNavCounts } from "@/lib/navCounts";
 import { getTheme } from "@/lib/theme";
 import { prisma } from "@/lib/prisma";
@@ -26,16 +27,17 @@ export default async function ThreadPage({
   const theme = await getTheme();
   const dict = dictionaries[locale];
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const feedCutoff = user?.feedCutoff ?? new Date();
 
   const [rows, counts] = await Promise.all([
     prisma.article.findMany({
-      where: { threadId: id },
+      where: { threadId: id, ...fetchedByCutoff(feedCutoff) },
       orderBy: [{ publishedAt: "asc" }, { fetchedAt: "asc" }],
       include: { articleStates: { where: { userId } } },
     }),
-    getNavCounts(userId, hiddenCategories),
+    getNavCounts(userId, hiddenCategories, feedCutoff),
   ]);
 
   if (rows.length === 0) notFound();

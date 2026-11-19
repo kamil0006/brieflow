@@ -1,13 +1,15 @@
 import type { Category } from "@/lib/categories";
 import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
+import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { freshnessFilter } from "@/lib/freshness";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function getNavCounts(
   userId: string,
-  hiddenCategories: Category[] = [],
+  hiddenCategories: Category[],
+  feedCutoff: Date,
   allDateFilter?: Prisma.ArticleWhereInput,
 ) {
   const categoryVisibility = visibleCategoriesFilter(hiddenCategories);
@@ -22,6 +24,7 @@ export async function getNavCounts(
           },
           visibleContentFilter(),
           categoryVisibility,
+          fetchedByCutoff(feedCutoff),
           allDateFilter ?? freshnessFilter(),
         ],
       },
