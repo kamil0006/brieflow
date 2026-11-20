@@ -23,7 +23,7 @@ describe("daily brief per settings", () => {
   });
 
   it("names the reader's own topics in the prompt", () => {
-    const categories = visibleCategories(["AI", "Gaming", "Tech", "Business", "Inne"]);
+    const categories = visibleCategories(["AI", "Gaming", "Tech", "Business", "Health", "Climate", "World", "History", "Culture", "Inne"]);
     expect(categories).toEqual(["Science", "Entertainment"]);
     const prompt = briefSystemPrompt(topicsList(categories, "pl"));
     expect(prompt).toContain("Nauka");

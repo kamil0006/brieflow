@@ -46,7 +46,7 @@ type QualityLabel = (typeof QUALITY_LABELS)[number];
 const LANGUAGES = ["pl", "en", "other"] as const;
 type Language = (typeof LANGUAGES)[number];
 
-const BASE_SYSTEM_PROMPT = `Oceniasz newsy dla osób śledzących AI, technologię, gry, biznes/startupy, naukę i rozrywkę (filmy/seriale), które nie mają czasu przeglądać wszystkiego samemu.
+const BASE_SYSTEM_PROMPT = `Oceniasz newsy dla osób śledzących AI, technologię, gry, biznes/startupy, naukę, zdrowie, klimat, wydarzenia ze świata, historię, kulturę i rozrywkę (filmy/seriale), które nie mają czasu przeglądać wszystkiego samemu.
 
 Dla każdego newsa ustal (każdy obiekt w odpowiedzi dotyczy WYŁĄCZNIE newsa o podanym id — nie mieszaj treści między newsami):
 - titleEcho: pierwsze 5-6 słów tytułu TEGO newsa, przepisane dosłownie, bez tłumaczenia (służy do weryfikacji, że opis dotyczy właściwego newsa).
@@ -55,8 +55,13 @@ Dla każdego newsa ustal (każdy obiekt w odpowiedzi dotyczy WYŁĄCZNIE newsa o
   - "Gaming": branża gier wideo — recenzje, aktualizacje, wydania.
   - "Tech": ogólna technologia, która nie pasuje lepiej do "AI" czy "Gaming" — sprzęt, oprogramowanie, internet, cyberbezpieczeństwo.
   - "Business": startupy, finansowanie, rynki, decyzje korporacyjne/biznesowe — także spółek technologicznych, jeśli news jest głównie o pieniądzach/strategii, a nie o samym produkcie.
-  - "Science": odkrycia naukowe, kosmos, badania NIE związane z AI.
-  - "Entertainment": filmy, seriale, streaming, popkultura.
+  - "Science": odkrycia naukowe, fizyka, biologia, kosmos, matematyka — badania NIE związane z AI.
+  - "Health": zdrowie człowieka — medycyna, choroby, leki, dieta, sen, zdrowie psychiczne, ochrona zdrowia. Ma priorytet nad "Science", gdy badanie dotyczy zdrowia ludzi.
+  - "Climate": klimat, energia, przyroda, ochrona środowiska, zanieczyszczenia. Ma priorytet nad "Science" i "World", gdy to główny temat.
+  - "World": wydarzenia na świecie — polityka, konflikty, dyplomacja, wybory, katastrofy, sprawy społeczne. Gdy news jest głównie o technologii/biznesie/nauce, wybierz tamtą kategorię.
+  - "History": historia i archeologia — wydarzenia i postacie z przeszłości, odkrycia archeologiczne, rocznice, eseje historyczne.
+  - "Culture": książki i literatura, sztuka, muzyka, teatr, design, muzea.
+  - "Entertainment": filmy, seriale, streaming, celebryci, popkultura.
   - "Inne": tylko gdy naprawdę nic z powyższych nie pasuje.
 - priority: liczba całkowita 1-5, gdzie 5 = koniecznie przeczytaj (przełomowe, unikalne, realnie zmienia coś w branży), 3 = warto rzucić okiem, 1 = pomiń (marketing, drobna aktualizacja, mało istotne, duplikat popularnego newsa).
 - summary: 1-2 zdania, konkretnie o co chodzi — bez lania wody, bez powtarzania tytułu. Jeśli nie masz treści (excerpt pusty), opisz, czego dotyczy news, na podstawie tytułu i źródła — NIGDY nie pisz, że brakuje treści albo informacji.

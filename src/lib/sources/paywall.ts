@@ -29,6 +29,7 @@ export const PAYWALLED_DOMAINS = [
   "newscientist.com",
   "scientificamerican.com",
   "livescience.com",
+  "historyextra.com",
   "nature.com",
   "science.org",
   "latimes.com",

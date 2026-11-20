@@ -107,6 +107,11 @@ export type Dictionary = {
     Tech: string;
     Business: string;
     Science: string;
+    Health: string;
+    Climate: string;
+    World: string;
+    History: string;
+    Culture: string;
     Entertainment: string;
     Inne: string;
   };
@@ -392,6 +397,11 @@ const pl: Dictionary = {
     Tech: "Tech",
     Business: "Biznes",
     Science: "Nauka",
+    Health: "Zdrowie",
+    Climate: "Klimat",
+    World: "Świat",
+    History: "Historia",
+    Culture: "Kultura",
     Entertainment: "Rozrywka",
     Inne: "Inne",
   },
@@ -708,6 +718,11 @@ const en: Dictionary = {
     Tech: "Tech",
     Business: "Business",
     Science: "Science",
+    Health: "Health",
+    Climate: "Climate",
+    World: "World",
+    History: "History",
+    Culture: "Culture",
     Entertainment: "Entertainment",
     Inne: "Other",
   },

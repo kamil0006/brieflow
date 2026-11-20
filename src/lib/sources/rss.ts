@@ -39,6 +39,33 @@ const FEEDS: FeedConfig[] = [
   { url: "https://www.nasa.gov/feed/", sourceName: "NASA", category: "Science", maxItems: 5 },
   { url: "https://www.space.com/feeds/all", sourceName: "Space.com", category: "Science", maxItems: 5 },
 
+  // health — capped, Medical Xpress publishes a lot
+  { url: "https://feeds.npr.org/1128/rss.xml", sourceName: "NPR Health", category: "Health", maxItems: 8 },
+  { url: "https://www.theguardian.com/society/health/rss", sourceName: "The Guardian Health", category: "Health", maxItems: 8 },
+  { url: "https://medicalxpress.com/rss-feed/", sourceName: "Medical Xpress", category: "Health", maxItems: 8 },
+
+  // climate/environment
+  { url: "https://www.theguardian.com/environment/rss", sourceName: "The Guardian Environment", category: "Climate", maxItems: 8 },
+  { url: "https://www.carbonbrief.org/feed/", sourceName: "Carbon Brief", category: "Climate", maxItems: 8 },
+  { url: "https://news.mongabay.com/feed/", sourceName: "Mongabay", category: "Climate", maxItems: 8 },
+  { url: "https://grist.org/feed/", sourceName: "Grist", category: "Climate", maxItems: 8 },
+
+  // world news — capped, these feeds publish a lot
+  { url: "https://www.theguardian.com/world/rss", sourceName: "The Guardian World", category: "World", maxItems: 8 },
+  { url: "https://www.aljazeera.com/xml/rss/all.xml", sourceName: "Al Jazeera", category: "World", maxItems: 8 },
+  { url: "https://rss.dw.com/rdf/rss-en-world", sourceName: "DW", category: "World", maxItems: 8 },
+
+  // history/archaeology
+  { url: "https://daily.jstor.org/feed/", sourceName: "JSTOR Daily", category: "History" },
+  { url: "https://www.theguardian.com/science/archaeology/rss", sourceName: "The Guardian Archaeology", category: "History" },
+  { url: "https://www.archaeology.org/feed", sourceName: "Archaeology Magazine", category: "History" },
+
+  // culture — books, art, music
+  { url: "https://www.theguardian.com/books/rss", sourceName: "The Guardian Books", category: "Culture", maxItems: 8 },
+  { url: "https://lithub.com/feed/", sourceName: "Literary Hub", category: "Culture", maxItems: 8 },
+  { url: "https://hyperallergic.com/feed/", sourceName: "Hyperallergic", category: "Culture", maxItems: 8 },
+  { url: "https://www.openculture.com/feed", sourceName: "Open Culture", category: "Culture", maxItems: 8 },
+
   // entertainment/movies/TV
   { url: "https://variety.com/feed/", sourceName: "Variety", category: "Entertainment" },
   { url: "https://collider.com/feed/", sourceName: "Collider", category: "Entertainment" },

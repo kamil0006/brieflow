@@ -26,6 +26,11 @@
   --cat-tech: #e3b24d;
   --cat-business: #5fb8b3;
   --cat-science: #a78bfa;
+  --cat-health: #f08a7e;
+  --cat-climate: #8bc34a;
+  --cat-world: #6cb4ee;
+  --cat-history: #c9a26b;
+  --cat-culture: #d18ce0;
   --cat-entertainment: #ec6f9b;
   --cat-other: #8b93a1;
 
@@ -58,6 +63,11 @@
   --cat-tech: #a9780a;
   --cat-business: #0f8f88;
   --cat-science: #7c5cd6;
+  --cat-health: #c4493d;
+  --cat-climate: #5a8a1f;
+  --cat-world: #2b78c2;
+  --cat-history: #8f6a32;
+  --cat-culture: #9b4fae;
   --cat-entertainment: #c43d72;
   --cat-other: #6b7280;
 }
@@ -77,6 +87,11 @@
   --color-cat-business: var(--cat-business);
   --color-cat-science: var(--cat-science);
   --color-cat-entertainment: var(--cat-entertainment);
+  --color-cat-health: var(--cat-health);
+  --color-cat-climate: var(--cat-climate);
+  --color-cat-world: var(--cat-world);
+  --color-cat-history: var(--cat-history);
+  --color-cat-culture: var(--cat-culture);
   --color-cat-other: var(--cat-other);
   --color-priority-5: var(--priority-5);
   --color-priority-4: var(--priority-4);
