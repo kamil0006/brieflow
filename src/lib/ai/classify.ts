@@ -52,8 +52,8 @@ Dla każdego newsa ustal (każdy obiekt w odpowiedzi dotyczy WYŁĄCZNIE newsa o
 - titleEcho: pierwsze 5-6 słów tytułu TEGO newsa, przepisane dosłownie, bez tłumaczenia (służy do weryfikacji, że opis dotyczy właściwego newsa).
 - category: jedna z ${CATEGORIES.join(", ")}. Zasady wyboru:
   - "AI": konkretnie o sztucznej inteligencji — modele, badania AI, firmy/produkty AI. AI-research ma priorytet nad "Science".
-  - "Gaming": branża gier wideo — recenzje, aktualizacje, wydania.
-  - "Tech": ogólna technologia, która nie pasuje lepiej do "AI" czy "Gaming" — sprzęt, oprogramowanie, internet, cyberbezpieczeństwo.
+  - "Gaming": branża gier wideo — recenzje, aktualizacje, wydania, a także ludzie i firmy z branży (studia, twórcy, zwolnienia, spory, związki zawodowe), nawet gdy news nie dotyczy konkretnej gry.
+  - "Tech": ogólna technologia, która nie pasuje lepiej do "AI" czy "Gaming" — sprzęt, oprogramowanie, internet, cyberbezpieczeństwo, a także programowanie, języki i narzędzia programistyczne, edytory, open source i inżynieria oprogramowania.
   - "Business": startupy, finansowanie, rynki, decyzje korporacyjne/biznesowe — także spółek technologicznych, jeśli news jest głównie o pieniądzach/strategii, a nie o samym produkcie.
   - "Science": odkrycia naukowe, fizyka, biologia, kosmos, matematyka — badania NIE związane z AI.
   - "Health": zdrowie człowieka — medycyna, choroby, leki, dieta, sen, zdrowie psychiczne, ochrona zdrowia. Ma priorytet nad "Science", gdy badanie dotyczy zdrowia ludzi.
@@ -62,7 +62,7 @@ Dla każdego newsa ustal (każdy obiekt w odpowiedzi dotyczy WYŁĄCZNIE newsa o
   - "History": historia i archeologia — wydarzenia i postacie z przeszłości, odkrycia archeologiczne, rocznice, eseje historyczne.
   - "Culture": książki i literatura, sztuka, muzyka, teatr, design, muzea.
   - "Entertainment": filmy, seriale, streaming, celebryci, popkultura.
-  - "Inne": tylko gdy naprawdę nic z powyższych nie pasuje.
+  - "Inne": tylko gdy naprawdę nic z powyższych nie pasuje — np. ciekawostki, lifestyle. Zanim wybierzesz "Inne", sprawdź, czy news nie pasuje do którejś kategorii choćby pośrednio.
 - priority: liczba całkowita 1-5, gdzie 5 = koniecznie przeczytaj (przełomowe, unikalne, realnie zmienia coś w branży), 3 = warto rzucić okiem, 1 = pomiń (marketing, drobna aktualizacja, mało istotne, duplikat popularnego newsa).
 - summary: 1-2 zdania, konkretnie o co chodzi — bez lania wody, bez powtarzania tytułu. Jeśli nie masz treści (excerpt pusty), opisz, czego dotyczy news, na podstawie tytułu i źródła — NIGDY nie pisz, że brakuje treści albo informacji.
 - quality: ocena rzetelności treści — TYLKO jeśli w excerpt masz realny fragment artykułu (nie sam tytuł, nie pusty/krótszy niż ok. 300 znaków tekst). Jeśli podstaw brak, zwróć quality: null i qualityNote: null. Gdy masz realną treść, wybierz jedną z:
