@@ -34,6 +34,7 @@ import { searchFilter } from "@/lib/searchText";
 import { buildHref, type ArticleFilters } from "@/lib/queryParams";
 import type { ArticleListItem } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
+import { allSources } from "@/lib/sources/rss";
 
 export const dynamic = "force-dynamic";
 
@@ -224,7 +225,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     }),
   ]);
 
-  const sources = sourceRows.map((row) => row.sourceName);
+  // only sources the app still fetches from — kept (saved/opened) articles
+  // of dropped feeds stay in the database but shouldn't be offered here
+  const currentSources = new Set(allSources().map((s) => s.sourceName));
+  const sources = sourceRows.map((row) => row.sourceName).filter((name) => currentSources.has(name));
   const hasMore = fetchedRows.length > limit && limit < MAX_LIMIT;
   const rows = fetchedRows.slice(0, limit);
 
