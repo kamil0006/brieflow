@@ -2,21 +2,25 @@ import Parser from "rss-parser";
 import type { Category } from "@/lib/categories";
 import { HACKER_NEWS_SOURCE, type NormalizedArticle } from "@/lib/sources/types";
 
+// Only sources readers can open without a subscription. Paywalled feeds
+// (MarketWatch, Wired, MIT Technology Review, The Hollywood Reporter) were
+// dropped; links from aggregators are filtered in paywall.ts.
+//
 // `category` marks feeds that cover a single topic. If every user hides that
 // category, the feed isn't fetched at all. Mixed feeds (no category) always are.
-type FeedConfig = { url: string; sourceName: string; category?: Category };
+// `maxItems` caps high-volume feeds so one source doesn't drown its category.
+type FeedConfig = { url: string; sourceName: string; category?: Category; maxItems?: number };
 
 const FEEDS: FeedConfig[] = [
   { url: "https://feeds.arstechnica.com/arstechnica/index", sourceName: "Ars Technica" },
   { url: "https://techcrunch.com/feed/", sourceName: "TechCrunch" },
-  { url: "https://www.technologyreview.com/feed/", sourceName: "MIT Technology Review" },
+  { url: "https://www.engadget.com/rss.xml", sourceName: "Engadget" },
   { url: "https://www.pcgamer.com/rss/", sourceName: "PC Gamer", category: "Gaming" },
   { url: "https://www.rockpapershotgun.com/feed", sourceName: "Rock Paper Shotgun", category: "Gaming" },
   { url: "https://feeds.ign.com/ign/games-all", sourceName: "IGN", category: "Gaming" },
   { url: "https://www.gamesindustry.biz/feed", sourceName: "GamesIndustry.biz", category: "Gaming" },
   { url: "https://lobste.rs/rss", sourceName: "Lobsters" },
   { url: "https://dev.to/feed/tag/ai", sourceName: "Dev.to" },
-  { url: "https://www.wired.com/feed/rss", sourceName: "Wired" },
   { url: "https://www.eurogamer.net/feed", sourceName: "Eurogamer", category: "Gaming" },
   { url: "https://www.polygon.com/rss/index.xml", sourceName: "Polygon", category: "Gaming" },
   { url: "https://kotaku.com/rss", sourceName: "Kotaku", category: "Gaming" },
@@ -24,14 +28,18 @@ const FEEDS: FeedConfig[] = [
   // business/startups/finance
   { url: "https://techcrunch.com/category/startups/feed/", sourceName: "TechCrunch Startups", category: "Business" },
   { url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", sourceName: "CNBC", category: "Business" },
-  { url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", sourceName: "MarketWatch", category: "Business" },
+  { url: "https://www.theguardian.com/uk/business/rss", sourceName: "The Guardian Business", category: "Business" },
 
-  // science/space
-  { url: "https://www.nasa.gov/feed/", sourceName: "NASA", category: "Science" },
-  { url: "https://www.space.com/feeds/all", sourceName: "Space.com", category: "Science" },
+  // science — broad (physics, biology, medicine, maths, environment) first,
+  // space capped so it doesn't dominate the category
+  { url: "https://www.sciencedaily.com/rss/top/science.xml", sourceName: "ScienceDaily", category: "Science" },
+  { url: "https://www.quantamagazine.org/feed/", sourceName: "Quanta Magazine", category: "Science" },
+  { url: "https://www.theguardian.com/science/rss", sourceName: "The Guardian Science", category: "Science" },
+  { url: "https://newatlas.com/science/index.rss", sourceName: "New Atlas", category: "Science" },
+  { url: "https://www.nasa.gov/feed/", sourceName: "NASA", category: "Science", maxItems: 5 },
+  { url: "https://www.space.com/feeds/all", sourceName: "Space.com", category: "Science", maxItems: 5 },
 
   // entertainment/movies/TV
-  { url: "https://www.hollywoodreporter.com/feed/", sourceName: "The Hollywood Reporter", category: "Entertainment" },
   { url: "https://variety.com/feed/", sourceName: "Variety", category: "Entertainment" },
   { url: "https://collider.com/feed/", sourceName: "Collider", category: "Entertainment" },
 ];
@@ -49,7 +57,7 @@ async function fetchFeed(feed: FeedConfig): Promise<NormalizedArticle[]> {
   const parsed = await parser.parseURL(feed.url);
 
   return (parsed.items ?? [])
-    .slice(0, MAX_ITEMS_PER_FEED)
+    .slice(0, feed.maxItems ?? MAX_ITEMS_PER_FEED)
     .filter((item) => item.link && item.title)
     .map((item) => ({
       sourceType: "rss",

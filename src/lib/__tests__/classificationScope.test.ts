@@ -37,7 +37,7 @@ describe("sourceNamesForCategories", () => {
     const all = sourceNamesForCategories([
       "AI", "Gaming", "Tech", "Business", "Science", "Entertainment", "Inne",
     ]);
-    for (const mixed of ["Ars Technica", "TechCrunch", "Wired", "Lobsters", "Dev.to", "MIT Technology Review"]) {
+    for (const mixed of ["Ars Technica", "TechCrunch", "Engadget", "Lobsters", "Dev.to"]) {
       expect(all).not.toContain(mixed);
     }
   });

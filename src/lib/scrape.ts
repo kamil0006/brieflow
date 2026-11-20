@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { retentionCutoff } from "@/lib/retention";
 import { searchTextFor } from "@/lib/searchText";
+import { isPaywalledUrl } from "@/lib/sources/paywall";
 import { isObviousPromo } from "@/lib/sources/promoFilter";
 import type { NormalizedArticle } from "@/lib/sources/types";
 
@@ -15,7 +16,11 @@ export async function saveArticles(articles: NormalizedArticle[]) {
   const tooOld = retentionCutoff(Date.now());
 
   for (const article of articles) {
-    if (isObviousPromo(article.title) || (article.publishedAt && article.publishedAt < tooOld)) {
+    if (
+      isObviousPromo(article.title) ||
+      isPaywalledUrl(article.url) ||
+      (article.publishedAt && article.publishedAt < tooOld)
+    ) {
       skipped += 1;
       continue;
     }
