@@ -1,8 +1,9 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { Category } from "@/lib/categories";
+import { loadDemotions, rankedFeedIds } from "@/lib/personalPriority";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
-import { FEED_ORDER, type FeedFilters, mainFeedWhere, pickUpcoming } from "@/lib/feed";
+import { type FeedFilters, mainFeedWhere, pickUpcoming } from "@/lib/feed";
 import { freshnessFilter } from "@/lib/freshness";
 import { prisma } from "@/lib/prisma";
 
@@ -39,13 +40,16 @@ export async function getUpcomingArticles({
   mutedKeywords: string[];
   feedCutoff: Date;
 }): Promise<ReaderCard[]> {
-  const candidates = await prisma.article.findMany({
-    where: mainFeedWhere({ userId, filters, hiddenCategories, mutedKeywords, dateFilter: freshnessFilter(), feedCutoff }),
-    orderBy: FEED_ORDER,
+  // same order as the feed — by this account's own priority
+  const ids = await rankedFeedIds(
+    mainFeedWhere({ userId, filters, hiddenCategories, mutedKeywords, dateFilter: freshnessFilter(), feedCutoff }),
+    await loadDemotions(userId),
     // +1 in case the open article is still in the feed (not marked read yet)
-    take: UPCOMING_COUNT + 1,
-    select: cardSelect,
-  });
+    UPCOMING_COUNT + 1,
+  );
+  const found = await prisma.article.findMany({ where: { id: { in: ids } }, select: cardSelect });
+  const byId = new Map(found.map((a) => [a.id, a]));
+  const candidates = ids.map((id) => byId.get(id)).filter((a) => a !== undefined);
   return pickUpcoming(current, candidates, UPCOMING_COUNT);
 }
 

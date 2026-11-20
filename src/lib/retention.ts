@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { pruneOldUsage } from "@/lib/aiUsage";
 import { prisma } from "@/lib/prisma";
 import { envNumber } from "@/lib/rateLimit";
 import { isPaywalledUrl } from "@/lib/sources/paywall";
@@ -59,5 +60,6 @@ export async function pruneExpiredNews(now: number = Date.now()) {
   const briefs = await prisma.dailyBrief.deleteMany({
     where: { date: { lt: cutoff.toISOString().slice(0, 10) } },
   });
+  await pruneOldUsage(now);
   return { articles: expired.count + paywalled, briefs: briefs.count };
 }

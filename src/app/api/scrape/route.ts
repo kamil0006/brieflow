@@ -4,6 +4,7 @@ import { classifyPendingArticles } from "@/lib/ai/classify";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
+import { countAtPersonalPriority, loadDemotions } from "@/lib/personalPriority";
 import { getCategoriesHiddenByEveryone } from "@/lib/classificationScope";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { prisma } from "@/lib/prisma";
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
       };
       [newCount, importantCount] = await Promise.all([
         prisma.article.count({ where: newWhere }),
-        prisma.article.count({ where: { AND: [newWhere, { priority: { gte: 4 } }] } }),
+        countAtPersonalPriority(newWhere, await loadDemotions(userId), 4),
       ]);
       brief = (await getOrCreateDailyBrief(hiddenCategories, mutedKeywords, locale, feedCutoff)) !== null;
     }

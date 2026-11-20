@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Locale } from "@/lib/i18n/locale";
+import { recordAiUsage } from "@/lib/aiUsage";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 // enough for the substance of a long article; keeps a single call cheap
@@ -52,6 +53,7 @@ export async function generateKeyPoints(
       },
     },
   });
+  await recordAiUsage("keyPoints", response.model ?? MODEL, response.usage);
 
   const raw = response.choices[0]?.message.content ?? "{}";
   const points = (JSON.parse(raw) as { points?: unknown }).points;

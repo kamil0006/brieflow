@@ -36,6 +36,7 @@ import type { ArticleListItem } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
 import { allSources } from "@/lib/sources/rss";
 import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
+import { countAtPersonalPriority, loadDemotions, personalPriority, rankedFeedIds } from "@/lib/personalPriority";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
   // Saved and History stay as they are — muting only filters what's new
   const notMuted = mutedKeywordsFilter(mutedKeywords);
+  // this account's own dismissals lower priorities only in its own feed
+  const demotions = await loadDemotions(userId);
   // only news fetched up to this account's own last refresh
   const feedCutoff = user?.feedCutoff ?? new Date();
   const seenByCutoff = fetchedByCutoff(feedCutoff);
@@ -147,21 +150,39 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           include: { article: true },
         })
         .then((states) => states.map((s) => ({ article: s.article, read: s.read, saved: s.saved })))
-    : prisma.article
+    : isDefaultView
+      ? // shared with the reader's "next article" (src/lib/feed.ts). In
+        // "catch-up" mode the window stretches to cover the whole absence
+        // instead of a fixed 7 days. Ordered by this account's priority.
+        rankedFeedIds(
+          mainFeedWhere({
+            userId,
+            filters: { category, source, q: query },
+            hiddenCategories,
+            mutedKeywords,
+            dateFilter: statsDateFilter,
+            feedCutoff,
+          }),
+          demotions,
+          limit + 1,
+        ).then(async (ids) => {
+          const found = await prisma.article.findMany({
+            where: { id: { in: ids } },
+            include: { articleStates: { where: { userId } } },
+          });
+          const byId = new Map(found.map((a) => [a.id, a]));
+          return ids
+            .map((id) => byId.get(id))
+            .filter((a) => a !== undefined)
+            .map(({ articleStates, ...article }) => ({
+              article,
+              read: articleStates[0]?.read ?? false,
+              saved: articleStates[0]?.saved ?? false,
+            }));
+        })
+      : prisma.article
         .findMany({
-          where: isDefaultView
-            ? // shared with the reader's "next article" (src/lib/feed.ts).
-              // In "catch-up" mode the window stretches to cover the whole
-              // absence instead of a fixed 7 days.
-              mainFeedWhere({
-                userId,
-                filters: { category, source, q: query },
-                hiddenCategories,
-                mutedKeywords,
-                dateFilter: statsDateFilter,
-                feedCutoff,
-              })
-            : {
+          where: {
                 // Saved shows exactly what you saved — read or not, duplicates included
                 AND: [
                   {
@@ -211,10 +232,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         ],
       },
     }),
-    prisma.article.count({
-      where: {
+    countAtPersonalPriority(
+      {
         AND: [
-          { priority: 5, duplicateOfId: null },
+          { duplicateOfId: null },
           seenByCutoff,
           { NOT: { articleStates: { some: { userId, OR: [{ read: true }, { dismissed: true }] } } } },
           visibleContentFilter(),
@@ -223,7 +244,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           statsDateFilter,
         ],
       },
-    }),
+      demotions,
+      5,
+    ),
     prisma.article.count({ where: { AND: [pendingFilter, notDismissedByUser, seenByCutoff] } }),
     prisma.article.findMany({
       distinct: ["sourceName"],
@@ -259,7 +282,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     summary: article.summary,
     sourceName: article.sourceName,
     category: toCategory(article.category),
-    priority: article.priority,
+    priority: personalPriority(article, demotions),
     publishedAt: article.publishedAt,
     fetchedAt: article.fetchedAt,
     read,

@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/i18n/locale";
 import { mutedKeywordsFilter } from "@/lib/mutedKeywords";
 import { prisma } from "@/lib/prisma";
 import { normalizeForSearch } from "@/lib/searchText";
+import { recordAiUsage } from "@/lib/aiUsage";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const TOP_ARTICLES = 12;
@@ -98,6 +99,7 @@ async function generateBrief(
       },
     ],
   });
+  await recordAiUsage("brief", response.model ?? MODEL, response.usage);
 
   return response.choices[0]?.message.content?.trim() || null;
 }

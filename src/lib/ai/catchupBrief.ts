@@ -8,6 +8,7 @@ import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
 import type { Locale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
+import { recordAiUsage } from "@/lib/aiUsage";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -111,6 +112,7 @@ async function buildCatchUpBrief(
       },
     ],
   });
+  await recordAiUsage("catchup", response.model ?? MODEL, response.usage);
 
   return response.choices[0]?.message.content?.trim() ?? null;
 }

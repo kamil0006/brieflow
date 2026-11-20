@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { envNumber } from "@/lib/rateLimit";
 import { takeToken } from "@/lib/usageLimit";
 import { buildAskAnswer } from "@/lib/ai/askAnswer";
+import { recordAiUsage } from "@/lib/aiUsage";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 // fewer candidates = fewer chances for the model to mix up which article
@@ -209,6 +210,7 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    await recordAiUsage("ask", response.model ?? MODEL, response.usage);
 
     const raw = response.choices[0]?.message.content ?? "{}";
     const parsed = JSON.parse(raw) as {

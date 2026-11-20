@@ -195,3 +195,17 @@ model VisitState {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// one row per OpenAI call — tokens as reported by the API, for the cost
+// overview the app owner sees in Settings (ADMIN_EMAILS). Cost is computed
+// when shown, from the price list in src/lib/aiUsage.ts.
+model AiUsage {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  kind             String // "classify" | "brief" | "catchup" | "ask" | "keyPoints"
+  model            String
+  promptTokens     Int
+  completionTokens Int
+
+  @@index([createdAt])
+}

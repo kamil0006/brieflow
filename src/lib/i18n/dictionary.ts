@@ -159,6 +159,19 @@ export type Dictionary = {
     mutedEmpty: string;
     mutedLimit: string;
   };
+  // server-only (functions) — rendered by a server component in Settings
+  aiCosts: {
+    heading: string;
+    ownerOnly: string;
+    thisMonth: string;
+    lastMonth: string;
+    today: string;
+    calls: (n: number) => string;
+    tokens: (input: string, output: string) => string;
+    kinds: Record<"classify" | "brief" | "catchup" | "ask" | "keyPoints", string>;
+    unknownPrice: string;
+    note: string;
+  };
   categoryToast: {
     hidden: (label: string) => string;
     undo: string;
@@ -456,6 +469,24 @@ const pl: Dictionary = {
     mutedRemove: "Usuń",
     mutedEmpty: "Nic nie ukrywasz.",
     mutedLimit: "Osiągnięto limit ukrytych tematów.",
+  },
+  aiCosts: {
+    heading: "Koszty AI",
+    ownerOnly: "Widzisz to tylko Ty.",
+    thisMonth: "Ten miesiąc",
+    lastMonth: "Poprzedni miesiąc",
+    today: "Dziś",
+    calls: (n) => `${n} ${plPlural(n, "zapytanie", "zapytania", "zapytań")}`,
+    tokens: (i, o) => `${i} tokenów wejścia · ${o} wyjścia`,
+    kinds: {
+      classify: "Klasyfikacja newsów",
+      brief: "Przegląd dnia",
+      catchup: "Co przegapiłeś",
+      ask: "Czat",
+      keyPoints: "Kluczowe punkty",
+    },
+    unknownPrice: "Część zapytań użyła modelu bez znanej ceny — kwota ich nie obejmuje.",
+    note: "Szacunek na podstawie tokenów i cennika modelu. Dokładny rachunek jest w panelu OpenAI. Miesiące liczone w UTC.",
   },
   categoryToast: {
     hidden: (label) => `Ukryto kategorię „${label}”`,
@@ -785,6 +816,24 @@ const en: Dictionary = {
     mutedRemove: "Remove",
     mutedEmpty: "You're not muting anything.",
     mutedLimit: "You've reached the limit of muted topics.",
+  },
+  aiCosts: {
+    heading: "AI costs",
+    ownerOnly: "Only you can see this.",
+    thisMonth: "This month",
+    lastMonth: "Last month",
+    today: "Today",
+    calls: (n) => `${n} request${n === 1 ? "" : "s"}`,
+    tokens: (i, o) => `${i} input tokens · ${o} output`,
+    kinds: {
+      classify: "News classification",
+      brief: "Daily brief",
+      catchup: "Catch-up",
+      ask: "Chat",
+      keyPoints: "Key points",
+    },
+    unknownPrice: "Some requests used a model with no known price — they're not included.",
+    note: "Estimated from tokens and the model's price list. The exact bill is in the OpenAI dashboard. Months are in UTC.",
   },
   categoryToast: {
     hidden: (label) => `Hid category "${label}"`,

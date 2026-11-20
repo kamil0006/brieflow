@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
+import { AiCostPanel } from "@/components/AiCostPanel";
 import { CategoryVisibilityList } from "@/components/CategoryVisibilityList";
 import { MutedKeywordsList } from "@/components/MutedKeywordsList";
 import { ReplayOnboardingButton } from "@/components/ReplayOnboardingButton";
 import { Sidebar } from "@/components/Sidebar";
 import { SourceHealthList } from "@/components/SourceHealthList";
+import { isAdmin } from "@/lib/auth/admin";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
 import { dictionaries } from "@/lib/i18n/dictionary";
@@ -57,6 +59,8 @@ export default async function SettingsPage() {
           </div>
 
           <SourceHealthList locale={locale} hiddenCategories={hiddenCategories} />
+
+          {(await isAdmin(userId)) && <AiCostPanel locale={locale} />}
         </main>
       </div>
     </>

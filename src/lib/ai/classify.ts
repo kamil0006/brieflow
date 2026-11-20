@@ -9,6 +9,7 @@ import { pendingClassificationFilter, skipStaleUnclassified } from "@/lib/classi
 import { extractArticleText } from "@/lib/extract";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
+import { recordAiUsage } from "@/lib/aiUsage";
 
 // the system prompt is sent once per batch, so bigger batches are cheaper —
 // but with 20 the model sometimes stopped early (5 of 20 results) or mixed
@@ -38,7 +39,6 @@ const RICH_CONTENT_THRESHOLD = 300;
 const TITLE_ONLY_THRESHOLD = 80;
 const MAX_PREFETCH_PER_RUN = 60;
 const PREFETCH_CONCURRENCY = 8;
-const MAX_FEEDBACK_EXAMPLES = 20;
 
 const QUALITY_LABELS = ["rzetelny", "przeciętny", "lanie_wody"] as const;
 type QualityLabel = (typeof QUALITY_LABELS)[number];
@@ -74,25 +74,6 @@ Dla każdego newsa ustal (każdy obiekt w odpowiedzi dotyczy WYŁĄCZNIE newsa o
 - language: język ORYGINAŁU newsa (tytułu/treści, NIE Twojego streszczenia) — "pl", "en", albo "other" dla każdego innego języka.
 
 Odpowiadaj wyłącznie w formacie JSON zgodnym ze schematem.`;
-
-async function buildFeedbackContext(): Promise<string> {
-  // dismissals are personal now (per account), but the classifier is shared —
-  // treat any user's dismissal as a signal, same as before multi-user accounts
-  const dismissed = await prisma.articleState.findMany({
-    where: { dismissed: true },
-    orderBy: { dismissedAt: "desc" },
-    take: MAX_FEEDBACK_EXAMPLES,
-    select: { article: { select: { title: true, category: true } } },
-  });
-
-  if (dismissed.length === 0) return "";
-
-  const examples = dismissed
-    .map((d) => `- [${d.article.category ?? "?"}] ${d.article.title}`)
-    .join("\n");
-
-  return `\n\nUżytkownik wcześniej oznaczył jako nieistotne newsy podobne do tych — jeśli trafi się coś bliskiego tematycznie, obniż priorytet:\n${examples}`;
-}
 
 type PendingArticle = {
   id: string;
@@ -203,6 +184,7 @@ async function classifyBatch(
       },
     },
   });
+  await recordAiUsage("classify", response.model ?? MODEL, response.usage);
 
   const raw = response.choices[0]?.message.content ?? "{}";
   const parsed = JSON.parse(raw) as { results: ClassificationResult[] };
@@ -345,7 +327,10 @@ export async function classifyPendingArticles(
 ) {
   const client = getClient(locale);
   const systemPrompt =
-    BASE_SYSTEM_PROMPT + (await buildFeedbackContext()) + languageDirective(locale);
+    // no dismissal examples here: priorities are shared by every account,
+    // so personal taste is applied per account when the feed is read
+    // (src/lib/personalPriority.ts)
+    BASE_SYSTEM_PROMPT + languageDirective(locale);
 
   // older than the window and still unclassified → skipped for good, so a
   // long break never turns into a backlog of stale news
