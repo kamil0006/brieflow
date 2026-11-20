@@ -16,6 +16,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { toCategory } from "@/lib/categories";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
+import { parseMutedKeywords } from "@/lib/mutedKeywords";
 import { feedQuery, parseFeedFilters } from "@/lib/feed";
 import { relativeTime } from "@/lib/format";
 import { dictionaries } from "@/lib/i18n/dictionary";
@@ -59,15 +60,16 @@ export default async function ReaderPage({ params, searchParams }: PageProps<"/r
         articleStates: { where: { userId }, select: { readAt: true, saved: true } },
       },
     }),
-    prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true } }),
   ]);
   if (!article) notFound();
 
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
   const feedCutoff = user?.feedCutoff ?? new Date();
   const [counts, upcoming, related] = await Promise.all([
-    getNavCounts(userId, hiddenCategories, feedCutoff),
-    getUpcomingArticles({ userId, current: article, filters, hiddenCategories, feedCutoff }),
+    getNavCounts(userId, hiddenCategories, mutedKeywords, feedCutoff),
+    getUpcomingArticles({ userId, current: article, filters, hiddenCategories, mutedKeywords, feedCutoff }),
     getRelatedArticles({ userId, current: article, feedCutoff }),
   ]);
   const state = article.articleStates[0];

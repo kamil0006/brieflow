@@ -33,7 +33,7 @@ describe("feed filters", () => {
 describe("mainFeedWhere", () => {
   const dateFilter = { publishedAt: { gte: new Date("2026-11-11") } };
   const feedCutoff = new Date("2026-11-18T10:00:00Z");
-  const base = { userId: "u1", hiddenCategories: [], dateFilter, feedCutoff };
+  const base = { userId: "u1", hiddenCategories: [], mutedKeywords: [], dateFilter, feedCutoff };
 
   it("keeps the freshness window for browsing", () => {
     const where = mainFeedWhere({ ...base, filters: { category: null, source: null, q: "" } });

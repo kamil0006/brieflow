@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CategoryVisibilityList } from "@/components/CategoryVisibilityList";
+import { MutedKeywordsList } from "@/components/MutedKeywordsList";
 import { ReplayOnboardingButton } from "@/components/ReplayOnboardingButton";
 import { Sidebar } from "@/components/Sidebar";
 import { SourceHealthList } from "@/components/SourceHealthList";
@@ -7,6 +8,7 @@ import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
+import { MAX_KEYWORD_LENGTH, MAX_MUTED_KEYWORDS, parseMutedKeywords } from "@/lib/mutedKeywords";
 import { getNavCounts } from "@/lib/navCounts";
 import { getTheme } from "@/lib/theme";
 import { prisma } from "@/lib/prisma";
@@ -21,9 +23,10 @@ export default async function SettingsPage() {
   const theme = await getTheme();
   const dict = dictionaries[locale];
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
-  const counts = await getNavCounts(userId, hiddenCategories, user?.feedCutoff ?? new Date());
+  const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
+  const counts = await getNavCounts(userId, hiddenCategories, mutedKeywords, user?.feedCutoff ?? new Date());
 
   return (
     <>
@@ -37,6 +40,13 @@ export default async function SettingsPage() {
           </div>
 
           <CategoryVisibilityList hiddenCategories={hiddenCategories} locale={locale} />
+
+          <MutedKeywordsList
+            keywords={mutedKeywords}
+            locale={locale}
+            maxKeywords={MAX_MUTED_KEYWORDS}
+            maxLength={MAX_KEYWORD_LENGTH}
+          />
 
           <div className="rounded-lg border border-border bg-surface p-4 mt-4 flex items-center justify-between gap-3">
             <div>

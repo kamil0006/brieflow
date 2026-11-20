@@ -3,6 +3,7 @@ import { CATEGORIES, type Category } from "@/lib/categories";
 import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
+import { mutedKeywordsFilter } from "@/lib/mutedKeywords";
 import { searchFilter } from "@/lib/searchText";
 
 // The main feed (homepage, category/source tabs, search) — shared by the
@@ -40,12 +41,14 @@ export function mainFeedWhere({
   userId,
   filters,
   hiddenCategories,
+  mutedKeywords,
   dateFilter,
   feedCutoff,
 }: {
   userId: string;
   filters: FeedFilters;
   hiddenCategories: Category[];
+  mutedKeywords: string[];
   dateFilter: Prisma.ArticleWhereInput;
   feedCutoff: Date;
 }): Prisma.ArticleWhereInput {
@@ -63,6 +66,7 @@ export function mainFeedWhere({
       { NOT: { articleStates: { some: { userId, read: true } } } },
       visibleContentFilter(),
       visibleCategoriesFilter(hiddenCategories),
+      mutedKeywordsFilter(mutedKeywords),
       fetchedByCutoff(feedCutoff),
       // a search looks through everything, not just the last few days —
       // looking something up usually means it's no longer fresh

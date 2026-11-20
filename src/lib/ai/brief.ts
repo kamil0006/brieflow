@@ -4,7 +4,9 @@ import { CATEGORIES, type Category, categoryLabel } from "@/lib/categories";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
 import type { Locale } from "@/lib/i18n/locale";
+import { mutedKeywordsFilter } from "@/lib/mutedKeywords";
 import { prisma } from "@/lib/prisma";
+import { normalizeForSearch } from "@/lib/searchText";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const TOP_ARTICLES = 12;
@@ -31,13 +33,27 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// accounts with the same language, the same visible categories and the
-// same last refresh get the same brief, so it's generated once for all of them
-export function briefKey(date: string, locale: Locale, categories: Category[], feedCutoff: Date): string {
-  return `${date}|${locale}|${[...categories].sort().join(",")}|${feedCutoff.getTime()}`;
+// accounts with the same language, the same visible categories, the same
+// muted phrases and the same last refresh get the same brief, so it's
+// generated once for all of them
+export function briefKey(
+  date: string,
+  locale: Locale,
+  categories: Category[],
+  feedCutoff: Date,
+  mutedKeywords: string[] = [],
+): string {
+  const base = `${date}|${locale}|${[...categories].sort().join(",")}|${feedCutoff.getTime()}`;
+  const muted = [...new Set(mutedKeywords.map(normalizeForSearch))].sort();
+  return muted.length > 0 ? `${base}|${muted.join(",")}` : base;
 }
 
-async function generateBrief(categories: Category[], locale: Locale, feedCutoff: Date): Promise<string | null> {
+async function generateBrief(
+  categories: Category[],
+  mutedKeywords: string[],
+  locale: Locale,
+  feedCutoff: Date,
+): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || categories.length === 0) return null;
 
@@ -50,6 +66,7 @@ async function generateBrief(categories: Category[], locale: Locale, feedCutoff:
         { classifiedAt: { not: null }, duplicateOfId: null, fetchedAt: { gte: since } },
         { category: { in: categories } },
         visibleContentFilter(),
+        mutedKeywordsFilter(mutedKeywords),
         fetchedByCutoff(feedCutoff),
       ],
     },
@@ -88,17 +105,18 @@ async function generateBrief(categories: Category[], locale: Locale, feedCutoff:
 // today's brief for these settings — from the cache, or generated now
 export async function getOrCreateDailyBrief(
   hiddenCategories: Category[],
+  mutedKeywords: string[],
   locale: Locale,
   feedCutoff: Date,
 ): Promise<string | null> {
   const categories = visibleCategories(hiddenCategories);
   const date = todayKey();
-  const key = briefKey(date, locale, categories, feedCutoff);
+  const key = briefKey(date, locale, categories, feedCutoff, mutedKeywords);
 
   const cached = await prisma.dailyBrief.findUnique({ where: { key } });
   if (cached) return cached.content;
 
-  const content = await generateBrief(categories, locale, feedCutoff);
+  const content = await generateBrief(categories, mutedKeywords, locale, feedCutoff);
   if (!content) return null;
 
   // upsert: two people with the same settings may open the page at once

@@ -3,6 +3,7 @@ import { getOrCreateDailyBrief, invalidateDailyBriefs } from "@/lib/ai/brief";
 import { classifyPendingArticles } from "@/lib/ai/classify";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPrefs";
+import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
 import { getCategoriesHiddenByEveryone } from "@/lib/classificationScope";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { prisma } from "@/lib/prisma";
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { hiddenCategories: true, feedCutoff: true },
+      select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true },
     });
     if (user) {
       // only this person's feed moves forward — everything fetched since
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       newSince = new Date(previousCutoff.getTime() + 1).toISOString();
 
       const hiddenCategories = parseHiddenCategories(user.hiddenCategories);
+      const mutedKeywords = parseMutedKeywords(user.mutedKeywords);
       // what this person will actually see from the run — their hidden
       // categories, duplicates and filtered-out promo don't count as "new"
       const newWhere = {
@@ -82,13 +84,14 @@ export async function POST(req: NextRequest) {
           { fetchedAt: { gt: previousCutoff, lte: feedCutoff }, duplicateOfId: null },
           visibleContentFilter(),
           visibleCategoriesFilter(hiddenCategories),
+          mutedKeywordsFilter(mutedKeywords),
         ],
       };
       [newCount, importantCount] = await Promise.all([
         prisma.article.count({ where: newWhere }),
         prisma.article.count({ where: { AND: [newWhere, { priority: { gte: 4 } }] } }),
       ]);
-      brief = (await getOrCreateDailyBrief(hiddenCategories, locale, feedCutoff)) !== null;
+      brief = (await getOrCreateDailyBrief(hiddenCategories, mutedKeywords, locale, feedCutoff)) !== null;
     }
   } catch (error) {
     stepFailed(errors, t.brief, error);

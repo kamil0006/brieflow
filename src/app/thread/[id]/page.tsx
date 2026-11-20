@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { toCategory } from "@/lib/categories";
 import { parseHiddenCategories } from "@/lib/categoryPrefs";
+import { parseMutedKeywords } from "@/lib/mutedKeywords";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
@@ -27,8 +28,9 @@ export default async function ThreadPage({
   const theme = await getTheme();
   const dict = dictionaries[locale];
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
   const feedCutoff = user?.feedCutoff ?? new Date();
 
   const [rows, counts] = await Promise.all([
@@ -37,7 +39,7 @@ export default async function ThreadPage({
       orderBy: [{ publishedAt: "asc" }, { fetchedAt: "asc" }],
       include: { articleStates: { where: { userId } } },
     }),
-    getNavCounts(userId, hiddenCategories, feedCutoff),
+    getNavCounts(userId, hiddenCategories, mutedKeywords, feedCutoff),
   ]);
 
   if (rows.length === 0) notFound();

@@ -5,6 +5,7 @@ import { getAskSince } from "@/lib/askContext";
 import { getCurrentUserId } from "@/lib/auth/currentUser";
 import { toCategory } from "@/lib/categories";
 import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPrefs";
+import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { dictionaries } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/i18n/locale";
@@ -27,12 +28,13 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
 
   const articleId = (Array.isArray(params.article) ? params.article[0] : params.article) ?? null;
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true } });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+  const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
   const feedCutoff = user?.feedCutoff ?? new Date();
 
   const [counts, contextCount, focusArticleRow] = await Promise.all([
-    getNavCounts(userId, hiddenCategories, feedCutoff),
+    getNavCounts(userId, hiddenCategories, mutedKeywords, feedCutoff),
     prisma.article.count({
       where: {
         AND: [
@@ -40,6 +42,7 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
           { NOT: { articleStates: { some: { userId, dismissed: true } } } },
           visibleContentFilter(),
           visibleCategoriesFilter(hiddenCategories),
+          mutedKeywordsFilter(mutedKeywords),
           fetchedByCutoff(feedCutoff),
           { OR: [{ publishedAt: { gte: since } }, { fetchedAt: { gte: since } }] },
         ],

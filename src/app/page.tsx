@@ -35,6 +35,7 @@ import { buildHref, type ArticleFilters } from "@/lib/queryParams";
 import type { ArticleListItem } from "@/lib/types";
 import type { Prisma } from "@/generated/prisma/client";
 import { allSources } from "@/lib/sources/rss";
+import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
 
 export const dynamic = "force-dynamic";
 
@@ -69,10 +70,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hiddenCategories: true, onboardingCompletedAt: true, feedCutoff: true },
+    select: { hiddenCategories: true, mutedKeywords: true, onboardingCompletedAt: true, feedCutoff: true },
   });
   const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
   const categoryVisibility = visibleCategoriesFilter(hiddenCategories);
+  const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
+  // Saved and History stay as they are — muting only filters what's new
+  const notMuted = mutedKeywordsFilter(mutedKeywords);
   // only news fetched up to this account's own last refresh
   const feedCutoff = user?.feedCutoff ?? new Date();
   const seenByCutoff = fetchedByCutoff(feedCutoff);
@@ -153,6 +157,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 userId,
                 filters: { category, source, q: query },
                 hiddenCategories,
+                mutedKeywords,
                 dateFilter: statsDateFilter,
                 feedCutoff,
               })
@@ -188,10 +193,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const [fetchedRows, counts, brief, newToday, mustRead, pendingClassification, sourceRows] = await Promise.all([
     rowsPromise,
-    getNavCounts(userId, hiddenCategories, feedCutoff, isHomepage ? statsDateFilter : undefined),
+    getNavCounts(userId, hiddenCategories, mutedKeywords, feedCutoff, isHomepage ? statsDateFilter : undefined),
     // the regular daily brief streams in separately (see <Suspense> below)
     catchUp.isCatchUp && catchUp.since
-      ? generateCatchUpBrief(userId, catchUp.since, locale, hiddenCategories, feedCutoff)
+      ? generateCatchUpBrief(userId, catchUp.since, locale, hiddenCategories, mutedKeywords, feedCutoff)
       : Promise.resolve(null),
     prisma.article.count({
       where: {
@@ -202,6 +207,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           { duplicateOfId: null },
           visibleContentFilter(),
           categoryVisibility,
+          notMuted,
         ],
       },
     }),
@@ -213,6 +219,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           { NOT: { articleStates: { some: { userId, OR: [{ read: true }, { dismissed: true }] } } } },
           visibleContentFilter(),
           categoryVisibility,
+          notMuted,
           statsDateFilter,
         ],
       },
@@ -314,7 +321,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               // generated on first view for these settings (~2-3s) — the
               // list shouldn't wait for it
               <Suspense fallback={<DailyBriefSkeleton />}>
-                <DailyBriefSection hiddenCategories={hiddenCategories} locale={locale} feedCutoff={feedCutoff} />
+                <DailyBriefSection hiddenCategories={hiddenCategories} mutedKeywords={mutedKeywords} locale={locale} feedCutoff={feedCutoff} />
               </Suspense>
             )
           )}

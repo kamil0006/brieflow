@@ -33,16 +33,18 @@ export function DailyBrief({
 // today's brief for this account's visible categories
 export async function DailyBriefSection({
   hiddenCategories,
+  mutedKeywords,
   locale,
   feedCutoff,
 }: {
   hiddenCategories: Category[];
+  mutedKeywords: string[];
   locale: Locale;
   feedCutoff: Date;
 }) {
   let content: string | null = null;
   try {
-    content = await getOrCreateDailyBrief(hiddenCategories, locale, feedCutoff);
+    content = await getOrCreateDailyBrief(hiddenCategories, mutedKeywords, locale, feedCutoff);
   } catch {
     // no brief is better than a broken homepage (e.g. OpenAI down)
     content = null;

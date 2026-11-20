@@ -3,12 +3,14 @@ import { visibleCategoriesFilter } from "@/lib/categoryPrefs";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { freshnessFilter } from "@/lib/freshness";
+import { mutedKeywordsFilter } from "@/lib/mutedKeywords";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function getNavCounts(
   userId: string,
   hiddenCategories: Category[],
+  mutedKeywords: string[],
   feedCutoff: Date,
   allDateFilter?: Prisma.ArticleWhereInput,
 ) {
@@ -24,6 +26,8 @@ export async function getNavCounts(
           },
           visibleContentFilter(),
           categoryVisibility,
+          // Saved and History stay as they are — muting only filters what's new
+          mutedKeywordsFilter(mutedKeywords),
           fetchedByCutoff(feedCutoff),
           allDateFilter ?? freshnessFilter(),
         ],

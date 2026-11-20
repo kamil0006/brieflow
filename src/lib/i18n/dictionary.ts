@@ -151,6 +151,13 @@ export type Dictionary = {
     tourHeading: string;
     tourBody: string;
     tourReplay: string;
+    mutedHeading: string;
+    mutedBody: string;
+    mutedPlaceholder: string;
+    mutedAdd: string;
+    mutedRemove: string;
+    mutedEmpty: string;
+    mutedLimit: string;
   };
   categoryToast: {
     hidden: (label: string) => string;
@@ -441,6 +448,14 @@ const pl: Dictionary = {
     tourHeading: "Wprowadzenie do apki",
     tourBody: "Krótki spacer po głównych funkcjach — przyda się, jeśli coś przeoczyłeś za pierwszym razem.",
     tourReplay: "Pokaż ponownie",
+    mutedHeading: "Ukryte tematy",
+    mutedBody:
+      "Newsy, których tytuł albo streszczenie zawiera któreś z tych słów, nie pojawią się w Twoim feedzie, licznikach, podsumowaniach ani czacie. Wielkość liter i polskie znaki nie mają znaczenia. Zapisane i Historia zostają bez zmian.",
+    mutedPlaceholder: "np. GTA 6",
+    mutedAdd: "Dodaj",
+    mutedRemove: "Usuń",
+    mutedEmpty: "Nic nie ukrywasz.",
+    mutedLimit: "Osiągnięto limit ukrytych tematów.",
   },
   categoryToast: {
     hidden: (label) => `Ukryto kategorię „${label}”`,
@@ -762,6 +777,14 @@ const en: Dictionary = {
     tourHeading: "App walkthrough",
     tourBody: "A short tour of the main features — handy if you missed something the first time.",
     tourReplay: "Show again",
+    mutedHeading: "Muted topics",
+    mutedBody:
+      "News whose title or summary contains any of these words won't show up in your feed, counts, briefs or chat. Case and accents don't matter. Saved and History stay as they are.",
+    mutedPlaceholder: "e.g. GTA 6",
+    mutedAdd: "Add",
+    mutedRemove: "Remove",
+    mutedEmpty: "You're not muting anything.",
+    mutedLimit: "You've reached the limit of muted topics.",
   },
   categoryToast: {
     hidden: (label) => `Hid category "${label}"`,

@@ -4,6 +4,7 @@ import { languageDirective } from "@/lib/ai/languageDirective";
 import { getAskSince } from "@/lib/askContext";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 import { parseHiddenCategories, visibleCategoriesFilter } from "@/lib/categoryPrefs";
+import { mutedKeywordsFilter, parseMutedKeywords } from "@/lib/mutedKeywords";
 import { visibleContentFilter } from "@/lib/contentFilter";
 import { fetchedByCutoff } from "@/lib/feedCutoff";
 import { dictionaries } from "@/lib/i18n/dictionary";
@@ -84,8 +85,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const since = getAskSince();
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, feedCutoff: true } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { hiddenCategories: true, mutedKeywords: true, feedCutoff: true } });
     const hiddenCategories = parseHiddenCategories(user?.hiddenCategories ?? "");
+    const mutedKeywords = parseMutedKeywords(user?.mutedKeywords ?? "");
     const feedCutoff = user?.feedCutoff ?? new Date();
 
     // fetched regardless of freshness/priority filters — the user explicitly
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest) {
             { NOT: { articleStates: { some: { userId, dismissed: true } } } },
             visibleContentFilter(),
             visibleCategoriesFilter(hiddenCategories),
+            mutedKeywordsFilter(mutedKeywords),
             fetchedByCutoff(feedCutoff),
             { OR: [{ publishedAt: { gte: since } }, { fetchedAt: { gte: since } }] },
           ],

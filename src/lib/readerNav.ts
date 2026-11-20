@@ -29,16 +29,18 @@ export async function getUpcomingArticles({
   current,
   filters,
   hiddenCategories,
+  mutedKeywords,
   feedCutoff,
 }: {
   userId: string;
   current: { id: string };
   filters: FeedFilters;
   hiddenCategories: Category[];
+  mutedKeywords: string[];
   feedCutoff: Date;
 }): Promise<ReaderCard[]> {
   const candidates = await prisma.article.findMany({
-    where: mainFeedWhere({ userId, filters, hiddenCategories, dateFilter: freshnessFilter(), feedCutoff }),
+    where: mainFeedWhere({ userId, filters, hiddenCategories, mutedKeywords, dateFilter: freshnessFilter(), feedCutoff }),
     orderBy: FEED_ORDER,
     // +1 in case the open article is still in the feed (not marked read yet)
     take: UPCOMING_COUNT + 1,
